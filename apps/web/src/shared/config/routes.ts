@@ -1,0 +1,1 @@
+export const routes = { home: "/", domain: (domainId: string) => `/domains/${domainId}`, tool: (domainId: string, toolId: string) => `/domains/${domainId}/tools/${toolId}`, step: (domainId: string, toolId: string, stepId: string | number) => `/domains/${domainId}/tools/${toolId}/steps/${stepId}` } as const

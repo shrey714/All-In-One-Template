@@ -1,21 +1,99 @@
-# shadcn/ui monorepo template
+# Orbit — scalable multi-domain tools workspace
 
-This is a Vite monorepo template with shadcn/ui.
+Orbit is a React dashboard built on the existing **Vite + React Router + Tailwind CSS v4 + Shadcn monorepo**. Domain and tool features belong to `apps/web`; reusable Shadcn primitives belong to `packages/ui` and are imported through `@workspace/ui`.
 
-## Adding components
-
-To add components to your app, run the following command at the root of your `web` app:
+## Run and validate
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+npm install
+npm run dev --workspace=web
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
-
-## Using components
-
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/button";
+```bash
+npm run lint
+npm run typecheck
+npm run build --workspace=web
 ```
+
+## Workspace experience
+
+- Floating, VS Code-inspired work surface with distinct activity rail, explorer, draggable divider, toolbar, content pane, and status bar.
+- The activity rail switches the sidebar between **Explorer**, **Pinned**, and **Recent** views. Domain groups can collapse, and the divider supports drag and keyboard resizing.
+- Collapse the sidebar to icon-only navigation for the currently selected view; the sidebar width, view, and collapsed state persist locally.
+- Light, dark, and system themes; compact layout and status-bar controls; settings persist locally.
+- One global search/command palette in the toolbar (`⌘K` / `Ctrl+K`); the sidebar filter is intentionally scoped to its selected view. Shortcut help (`?`), sidebar toggle (`⌘B` / `Ctrl+B`), and settings (`⌘,` / `Ctrl+,`) each have a single primary control.
+- Pin tools with a star to save them locally; pinned tools appear on the overview and in the Pinned view. Recently opened tools are kept in the Recent view, which can be cleared locally.
+- Search and route links support direct deep links.
+- Responsive shell: on narrow viewports, open the command palette to navigate without the desktop explorer.
+
+## Source layout
+
+```text
+apps/web/
+├── e2e/                               # Browser-test scaffold
+└── src/
+    ├── App.tsx                        # Route composition; tools resolve via catalog
+    ├── main.tsx                       # Vite entry and provider composition
+    ├── app/
+    │   ├── AppShell.tsx               # Resizable workspace layout and global portals
+    │   ├── errors/                    # Route error boundary and fallbacks
+    │   ├── layouts/                   # Layout boundary exports
+    │   ├── pages/                     # Overview and domain landing pages
+    │   ├── providers/                 # Theme/provider entry points
+    │   └── routes/                    # Reusable route path helpers
+    ├── domains/
+    │   ├── _template/                 # Copyable domain + tool module template
+    │   ├── finance/
+    │   │   ├── config/ components/ hooks/ services/ types/ utils/
+    │   │   └── tools/emi-calculator/  # Tool-owned UI, hooks, services, types, utils
+    │   ├── productivity/
+    │   │   ├── config/ components/ hooks/ services/ types/ utils/
+    │   │   └── tools/pomodoro-timer/  # Tool-owned UI, hooks, services, types, utils
+    │   └── health/                    # Registered, empty starter domain
+    ├── shared/
+    │   ├── components/                # Layout, dialogs, forms, feedback, display, nav
+    │   ├── config/                    # App config, routes, central tool/domain catalog
+    │   ├── constants/                 # Cross-domain defaults
+    │   ├── hooks/                     # Persistence and workspace shortcuts
+    │   ├── lib/                       # Shared implementation helpers
+    │   ├── services/                  # API, analytics, recent tools, pinned tools
+    │   ├── types/                     # Domain and tool contracts
+    │   └── utils/                     # Cross-domain formatting utilities
+    ├── __tests__/                     # App test scaffold
+    └── test-utils/                    # Shared test utilities scaffold
+
+packages/ui/
+├── src/components/                    # Shadcn components shared across apps
+├── src/hooks/                         # UI-package hooks
+├── src/lib/                           # UI-package utilities
+└── src/styles/globals.css             # Shared Tailwind v4 tokens and theme
+```
+
+**Ownership rule:** keep behavior local to its domain or tool. Promote it to `shared/` only when multiple domains need it. For reusable visual primitives, use `packages/ui` so Shadcn’s monorepo-aware CLI can manage them.
+
+## Add a domain or tool
+
+1. Copy `apps/web/src/domains/_template` and replace its domain metadata; the `components`, `config`, `hooks`, `services`, `types`, `utils`, and `tools` boundaries are ready.
+2. Create a tool folder from `domains/_template/tools/_tool-template`. Keep tool-specific presentation, state, API integration, models, and calculations inside it.
+3. Register the domain descriptor and tool metadata/component in `shared/config/registry.tsx`. Tool URLs are derived from registry entries; ordinary additions do **not** require new route-table code.
+4. Add tests and optional API/analytics integration only when the feature needs them. The API and analytics modules currently provide lightweight boundaries, not a live backend.
+
+The Health domain shows the intended empty-domain experience without shipping placeholder functionality.
+
+## Routes and shareable state
+
+- `/` — workspace overview
+- `/domains/:domainId` — domain landing page, including a useful empty state
+- `/domains/:domainId/tools/:toolId` — tool page
+- `/domains/:domainId/tools/:toolId/steps/:stepId` — step-level deep link
+- EMI inputs are query-string backed; Pomodoro duration/session state is URL backed.
+
+## Shadcn monorepo workflow
+
+The app and shared UI packages have matching `components.json` monorepo configuration. From `apps/web`, add a reusable component by name:
+
+```bash
+npx shadcn@4.21.4 add [component]
+```
+
+The UI workspace currently has **61 shared component files** (including the existing Button and Card). Both CLI routing and the prior Attachment registry entry were verified with the configured `radix-nova` style. See the official [Shadcn monorepo guide](https://ui.shadcn.com/docs/monorepo).
