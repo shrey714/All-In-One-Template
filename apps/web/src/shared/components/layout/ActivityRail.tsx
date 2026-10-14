@@ -1,9 +1,24 @@
 import { NavLink } from "react-router-dom"
-import { Clock3, Command, FolderTree, Star } from "lucide-react"
+import {
+  Clock3,
+  Command,
+  FolderTree,
+  HelpCircle,
+  Moon,
+  Settings2,
+  Star,
+  Sun,
+} from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
+import { useTheme } from "@/app/providers"
 
 export type SidebarView = "explorer" | "pinned" | "recent"
-type Props = { view: SidebarView; onViewChange: (view: SidebarView) => void }
+type Props = {
+  view: SidebarView
+  onViewChange: (view: SidebarView) => void
+  onSettings: () => void
+  onHelp: () => void
+}
 
 const views = [
   { id: "explorer", label: "Explorer", icon: FolderTree },
@@ -11,13 +26,19 @@ const views = [
   { id: "recent", label: "Recent tools", icon: Clock3 },
 ] as const
 
-export function ActivityRail({ view, onViewChange }: Props) {
+export function ActivityRail({
+  view,
+  onViewChange,
+  onSettings,
+  onHelp,
+}: Props) {
+  const { theme, setTheme } = useTheme()
+  const ThemeIcon = theme === "dark" ? Sun : Moon
+
   return (
     <nav
       aria-label="Workspace views"
-      className="ml-1 my-1 flex w-12 shrink-0 flex-col items-center border border-r-0 border-border py-3
-      overflow-hidden rounded-l-md
-      "
+      className="ml-1 flex h-full w-12 shrink-0 flex-col items-center overflow-hidden rounded-l-md border border-r-0 border-border py-3"
     >
       <NavLink
         end
@@ -52,11 +73,42 @@ export function ActivityRail({ view, onViewChange }: Props) {
         ))}
       </div>
       <span className="flex-1" />
-      <span
-        className="mb-2 size-1.5 rounded-full bg-emerald-500"
-        title="Workspace ready"
-        aria-label="Workspace ready"
-      />
+      <div className="flex flex-col items-center gap-1 border-t border-border/70 pt-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          <ThemeIcon className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Keyboard shortcuts · ?"
+          aria-label="Keyboard shortcuts"
+          onClick={onHelp}
+        >
+          <HelpCircle className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Configuration manager · ⌘,"
+          aria-label="Workspace settings"
+          onClick={onSettings}
+        >
+          <Settings2 className="size-4" />
+        </Button>
+        <span
+          className="mt-1 grid size-7 place-items-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200"
+          title="Pakhi Srivastava"
+          aria-label="Profile: Pakhi Srivastava"
+        >
+          PS
+        </span>
+      </div>
     </nav>
   )
 }

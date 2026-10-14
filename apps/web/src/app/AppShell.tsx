@@ -149,54 +149,54 @@ export function AppShell() {
   return (
     <div
       data-density={compact ? "compact" : "comfortable"}
-      className="flex h-svh text-foreground"
+      className="flex h-svh min-h-0 flex-col overflow-hidden text-foreground"
     >
-      <div className="hidden md:flex">
-        <ActivityRail view={sidebarView} onViewChange={setSidebarView} />
-      </div>
-      <div className="hidden md:flex">
-        <WorkspaceSidebar
-          view={sidebarView}
-          collapsed={sidebarCollapsed}
-          onToggle={toggleSidebar}
-          width={renderedWidth}
-        />
-      </div>
-      {!sidebarCollapsed && (
+      <WorkspaceToolbar onSearch={openSearch} />
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div className="hidden md:flex">
-          <SidebarResizeHandle
-            width={renderedWidth}
-            min={appConfig.minSidebarWidth}
-            max={appConfig.maxSidebarWidth}
-            onToggle={toggleSidebar}
-            onPointerDown={onResizeStart}
-            onWidthChange={handleWidthChange}
+          <ActivityRail
+            view={sidebarView}
+            onViewChange={setSidebarView}
+            onSettings={openSettings}
+            onHelp={openHelp}
           />
         </div>
-      )}
-      <main
-        id="workspace-main"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:my-1 md:mr-1 md:ml-0.5 md:rounded-md md:border md:border-border"
-      >
-        <WorkspaceToolbar
-          onSearch={openSearch}
-          onSettings={openSettings}
-          onHelp={openHelp}
-        />
-        <div
-          className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
-        >
-          <div className="mx-auto w-full max-w-[1280px]">
-            <Outlet />
-          </div>
-        </div>
-        {showStatusBar && (
-          <WorkspaceStatusBar
+        <div className="hidden md:flex">
+          <WorkspaceSidebar
+            view={sidebarView}
             collapsed={sidebarCollapsed}
-            width={sidebarWidth}
+            onToggle={toggleSidebar}
+            width={renderedWidth}
           />
+        </div>
+        {!sidebarCollapsed && (
+          <div className="hidden md:flex">
+            <SidebarResizeHandle
+              width={renderedWidth}
+              min={appConfig.minSidebarWidth}
+              max={appConfig.maxSidebarWidth}
+              onToggle={toggleSidebar}
+              onPointerDown={onResizeStart}
+              onWidthChange={handleWidthChange}
+            />
+          </div>
         )}
-      </main>
+        <main
+          id="workspace-main"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:mr-1 md:ml-0.5 md:rounded-md md:border md:border-border"
+        >
+          <div
+            className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
+          >
+            <div className="mx-auto w-full max-w-[1280px]">
+              <Outlet />
+            </div>
+          </div>
+        </main>
+      </div>
+      {showStatusBar && (
+        <WorkspaceStatusBar collapsed={sidebarCollapsed} width={sidebarWidth} />
+      )}
       <CommandSearchDialog
         open={searchOpen}
         onOpenChange={setSearchOpen}

@@ -100,7 +100,7 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
         id="workspace-sidebar"
         aria-label="Collapsed domain and tool navigation"
         style={{ width }}
-        className="mr-0.5 my-1 flex shrink-0 flex-col items-center overflow-hidden rounded-r-md border border-border"
+        className="mr-0.5 flex shrink-0 flex-col items-center overflow-hidden rounded-r-md border border-border"
       >
         <div className="grid h-[54px] w-full shrink-0 place-items-center border-b border-border">
           <FolderTree className="size-4 text-primary" />
@@ -176,7 +176,7 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
       id="workspace-sidebar"
       aria-label="Domain and tool navigation"
       style={{ width }}
-      className="mr-0.5 my-1 flex shrink-0 flex-col overflow-hidden rounded-r-md border border-border transition-[width] duration-150"
+      className="mr-0.5 flex shrink-0 flex-col overflow-hidden rounded-r-md border border-border transition-[width] duration-150"
     >
       <div className="flex h-[54px] w-full shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-2.5">

@@ -1,17 +1,13 @@
 import { useLocation } from "react-router-dom"
-import { Command, HelpCircle, Moon, Search, Settings2, Sun } from "lucide-react"
+import { Command, Search } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { useTheme } from "@/app/providers"
 import { getTool, getDomain } from "@/shared/config/registry"
 
 type Props = {
   onSearch: () => void
-  onSettings: () => void
-  onHelp: () => void
 }
-export function WorkspaceToolbar({ onSearch, onSettings, onHelp }: Props) {
+export function WorkspaceToolbar({ onSearch }: Props) {
   const location = useLocation()
-  const { theme, setTheme } = useTheme()
   const parts = location.pathname.split("/").filter(Boolean)
   const domain = parts[0] === "domains" ? getDomain(parts[1] ?? "") : undefined
   const toolIndex = parts.indexOf("tools")
@@ -23,9 +19,8 @@ export function WorkspaceToolbar({ onSearch, onSettings, onHelp }: Props) {
     tool?.name ??
     domain?.name ??
     (parts[0] === "not-found" ? "Not found" : "Overview")
-  const ThemeIcon = theme === "dark" ? Sun : Moon
   return (
-    <header className="flex h-[54px] shrink-0 items-center justify-between gap-2 border-b border-border px-3 sm:gap-3 sm:px-5">
+    <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-1 sm:gap-3 sm:px-5">
       <div className="flex min-w-0 shrink items-center gap-2 text-xs">
         <span className="hidden text-muted-foreground sm:inline">Orbit</span>
         <span className="hidden text-muted-foreground/50 sm:inline">/</span>
@@ -38,7 +33,7 @@ export function WorkspaceToolbar({ onSearch, onSettings, onHelp }: Props) {
         <Button
           variant="outline"
           aria-label="Search tools, pages, and commands"
-          className="h-8 w-full max-w-[460px] min-w-0 justify-start gap-2 rounded-lg bg-background px-2.5 text-xs font-normal text-muted-foreground shadow-none"
+          className="h-8 w-full max-w-[460px] min-w-0 justify-start gap-2 rounded-sm bg-background px-2.5 text-xs font-normal text-muted-foreground shadow-none"
           onClick={onSearch}
         >
           <Search className="size-3.5 shrink-0" />
@@ -49,38 +44,6 @@ export function WorkspaceToolbar({ onSearch, onSettings, onHelp }: Props) {
             <Command className="size-2.5" />K
           </kbd>
         </Button>
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Toggle light/dark theme"
-          aria-label="Toggle theme"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          <ThemeIcon className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Keyboard shortcuts · ?"
-          aria-label="Keyboard shortcuts"
-          onClick={onHelp}
-        >
-          <HelpCircle className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Configuration manager · ⌘,"
-          aria-label="Workspace settings"
-          onClick={onSettings}
-        >
-          <Settings2 className="size-4" />
-        </Button>
-        <span className="ml-1 grid size-7 shrink-0 place-items-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200">
-          PS
-        </span>
       </div>
     </header>
   )
