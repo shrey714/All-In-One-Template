@@ -151,7 +151,11 @@ export function AppShell() {
       data-density={compact ? "compact" : "comfortable"}
       className="flex h-svh min-h-0 flex-col overflow-hidden text-foreground"
     >
-      <WorkspaceToolbar onSearch={openSearch} />
+      <WorkspaceToolbar
+        onSearch={openSearch}
+        onToggleSidebar={toggleSidebar}
+        sidebarCollapsed={sidebarCollapsed}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div className="hidden md:flex">
           <ActivityRail
