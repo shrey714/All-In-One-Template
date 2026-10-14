@@ -100,7 +100,7 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
         id="workspace-sidebar"
         aria-label="Collapsed domain and tool navigation"
         style={{ width }}
-        className="mr-0.5 flex shrink-0 flex-col items-center overflow-hidden rounded-r-md border border-border"
+        className="group/sidebar mr-0.5 flex shrink-0 flex-col items-center overflow-hidden rounded-r-md border border-border"
       >
         <div className="grid h-[54px] w-full shrink-0 place-items-center border-b border-border">
           <FolderTree className="size-4 text-primary" />
@@ -143,6 +143,7 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
             title="Expand sidebar · ⌘B"
             aria-label="Expand sidebar · ⌘B"
             onClick={onToggle}
+            className="opacity-0 transition-opacity group-focus-within/sidebar:opacity-100 group-hover/sidebar:opacity-100"
           >
             <ChevronsRight />
           </Button>
@@ -176,9 +177,9 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
       id="workspace-sidebar"
       aria-label="Domain and tool navigation"
       style={{ width }}
-      className="mr-0.5 flex shrink-0 flex-col overflow-hidden rounded-r-md border border-border transition-[width] duration-150"
+      className="group/sidebar mr-0.5 flex shrink-0 flex-col overflow-hidden rounded-r-md border border-border transition-[width] duration-150"
     >
-      <div className="flex h-[54px] w-full shrink-0 items-center justify-between border-b border-border px-4">
+      <div className="flex h-[54px] w-full shrink-0 items-center border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
             <FolderTree className="size-3.5" />
@@ -187,15 +188,6 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
             ORBIT WORKSPACE
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          title="Collapse sidebar · ⌘B"
-          aria-label="Collapse sidebar · ⌘B"
-          onClick={onToggle}
-        >
-          <ChevronsLeft className="size-4" />
-        </Button>
       </div>
 
       <div className="flex w-full shrink-0 items-center justify-between px-4 pt-4 pb-2">
@@ -383,8 +375,8 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
           </nav>
         )}
       </div>
-      <div className="w-full shrink-0 border-t border-border px-3 py-3">
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
+      <div className="flex w-full shrink-0 items-center gap-1 border-t border-border px-3 py-3">
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
             <span className="truncate text-[11px] text-muted-foreground">
@@ -398,6 +390,16 @@ export function WorkspaceSidebar({ view, collapsed, onToggle, width }: Props) {
             Local
           </span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          title="Collapse sidebar · ⌘B"
+          aria-label="Collapse sidebar · ⌘B"
+          onClick={onToggle}
+          className="size-7 shrink-0 opacity-0 transition-opacity group-focus-within/sidebar:opacity-100 group-hover/sidebar:opacity-100"
+        >
+          <ChevronsLeft className="size-4" />
+        </Button>
       </div>
     </aside>
   )
