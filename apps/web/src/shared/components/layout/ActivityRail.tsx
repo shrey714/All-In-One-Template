@@ -40,7 +40,7 @@ export function ActivityRail({
   return (
     <nav
       aria-label="Workspace views"
-      className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden border-y border-l border-transparent py-3 ${divider ? "border-r border-border" : ""}`}
+      className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden py-3 ${divider ? "border-r border-border" : ""}`}
     >
       <NavLink
         end

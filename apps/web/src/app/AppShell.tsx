@@ -13,7 +13,6 @@ import { WorkspaceSidebar } from "@/shared/components/layout/WorkspaceSidebar"
 import { ToolDock } from "@/shared/components/layout/ToolDock"
 import { WorkspaceStatusBar } from "@/shared/components/layout/WorkspaceStatusBar"
 import { WorkspaceToolbar } from "@/shared/components/layout/WorkspaceToolbar"
-import { CommandSearchDialog } from "@/shared/components/dialogs/CommandSearchDialog"
 import { ConfigManagerDialog } from "@/shared/components/dialogs/ConfigManagerDialog"
 import { ShortcutHelpDialog } from "@/shared/components/dialogs/ShortcutHelpDialog"
 import { appConfig } from "@/shared/config/app-config"
@@ -72,7 +71,9 @@ export function AppShell() {
     `${appConfig.storageNamespace}.centered-content`,
     true
   )
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [toolbarPopup, setToolbarPopup] = useState<"search" | "layout" | null>(
+    null
+  )
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
@@ -86,7 +87,7 @@ export function AppShell() {
     routeParts[0] === "domains" && routeParts[2] === "tools"
       ? getTool(routeParts[1] ?? "", routeParts[3] ?? "")
       : undefined
-  const openSearch = useCallback(() => setSearchOpen(true), [])
+  const openSearch = useCallback(() => setToolbarPopup("search"), [])
   const toggleSidebar = useCallback(
     () => setSidebarCollapsed((value) => !value),
     [setSidebarCollapsed]
@@ -119,7 +120,7 @@ export function AppShell() {
   }, [location.pathname])
 
   useEffect(() => {
-    const onSearch = () => setSearchOpen(true)
+    const onSearch = () => setToolbarPopup("search")
     const onHelp = () => setShortcutsOpen(true)
     window.addEventListener("orbit:open-search", onSearch)
     window.addEventListener("orbit:open-shortcuts", onHelp)
@@ -264,7 +265,9 @@ export function AppShell() {
       className="flex h-svh min-h-0 flex-col overflow-hidden p-1 text-foreground"
     >
       <WorkspaceToolbar
-        onSearch={openSearch}
+        floatingPanel={toolbarPopup}
+        onFloatingPanelChange={setToolbarPopup}
+        onOpenSettings={openSettings}
         onToggleSidebar={() => {
           if (sidebarVisible) toggleSidebar()
           else setSidebarVisible(true)
@@ -436,11 +439,6 @@ export function AppShell() {
       {showStatusBar && (
         <WorkspaceStatusBar collapsed={sidebarCollapsed} width={sidebarWidth} />
       )}
-      <CommandSearchDialog
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        onOpenSettings={openSettings}
-      />
       <ConfigManagerDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
