@@ -7,10 +7,7 @@ import {
   type PointerEvent,
 } from "react"
 import { Outlet, useLocation } from "react-router-dom"
-import {
-  ActivityRail,
-  type SidebarView,
-} from "@/shared/components/layout/ActivityRail"
+import type { SidebarView } from "@/shared/components/layout/ActivityRail"
 import { SidebarResizeHandle } from "@/shared/components/layout/SidebarResizeHandle"
 import { WorkspaceSidebar } from "@/shared/components/layout/WorkspaceSidebar"
 import { ToolDock } from "@/shared/components/layout/ToolDock"
@@ -34,6 +31,14 @@ export function AppShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = usePersistentState(
     `${appConfig.storageNamespace}.sidebar-collapsed`,
     false
+  )
+  const [activityRailVisible, setActivityRailVisible] = usePersistentState(
+    `${appConfig.storageNamespace}.activity-rail-visible`,
+    true
+  )
+  const [sidebarVisible, setSidebarVisible] = usePersistentState(
+    `${appConfig.storageNamespace}.sidebar-visible`,
+    true
   )
   const [rightPanelOpen, setRightPanelOpen] = usePersistentState(
     `${appConfig.storageNamespace}.right-panel-open`,
@@ -61,6 +66,10 @@ export function AppShell() {
   )
   const [showStatusBar, setShowStatusBar] = usePersistentState(
     `${appConfig.storageNamespace}.status-bar`,
+    true
+  )
+  const [centeredContent, setCenteredContent] = usePersistentState(
+    `${appConfig.storageNamespace}.centered-content`,
     true
   )
   const [searchOpen, setSearchOpen] = useState(false)
@@ -217,12 +226,30 @@ export function AppShell() {
   const resetLayout = () => {
     setSidebarWidth(appConfig.defaultSidebarWidth)
     setSidebarCollapsed(false)
+    setActivityRailVisible(true)
+    setSidebarVisible(true)
     setRightPanelOpen(false)
     setBottomPanelOpen(false)
     setRightPanelWidth(appConfig.defaultRightPanelWidth)
     setBottomPanelHeight(appConfig.defaultBottomPanelHeight)
     setSidebarView("explorer")
     setCompact(false)
+    setShowStatusBar(true)
+    setCenteredContent(true)
+  }
+  const enableFocusMode = () => {
+    setActivityRailVisible(false)
+    setSidebarVisible(false)
+    setRightPanelOpen(false)
+    setBottomPanelOpen(false)
+    setShowStatusBar(false)
+  }
+  const showAllPanels = () => {
+    setActivityRailVisible(true)
+    setSidebarVisible(true)
+    setSidebarCollapsed(false)
+    setRightPanelOpen(Boolean(currentTool?.panels?.right))
+    setBottomPanelOpen(Boolean(currentTool?.panels?.bottom))
     setShowStatusBar(true)
   }
   const renderedWidth = sidebarCollapsed ? 60 : sidebarWidth
@@ -234,37 +261,52 @@ export function AppShell() {
   return (
     <div
       data-density={compact ? "compact" : "comfortable"}
-      className="flex h-svh min-h-0 flex-col overflow-hidden text-foreground"
+      className="flex h-svh min-h-0 flex-col overflow-hidden p-1 text-foreground"
     >
       <WorkspaceToolbar
         onSearch={openSearch}
-        onToggleSidebar={toggleSidebar}
+        onToggleSidebar={() => {
+          if (sidebarVisible) toggleSidebar()
+          else setSidebarVisible(true)
+        }}
+        sidebarVisible={sidebarVisible}
         sidebarCollapsed={sidebarCollapsed}
         rightPanelAvailable={Boolean(currentTool?.panels?.right)}
         rightPanelOpen={rightPanelOpen}
         onToggleRightPanel={() => setRightPanelOpen((value) => !value)}
+        onRightPanelOpenChange={setRightPanelOpen}
         bottomPanelAvailable={Boolean(currentTool?.panels?.bottom)}
         bottomPanelOpen={bottomPanelOpen}
         onToggleBottomPanel={() => setBottomPanelOpen((value) => !value)}
+        onBottomPanelOpenChange={setBottomPanelOpen}
+        activityRailVisible={activityRailVisible}
+        onActivityRailVisibleChange={setActivityRailVisible}
+        onSidebarVisibleChange={setSidebarVisible}
+        showStatusBar={showStatusBar}
+        onShowStatusBarChange={setShowStatusBar}
+        centeredContent={centeredContent}
+        onCenteredContentChange={setCenteredContent}
+        onFocusMode={enableFocusMode}
+        onShowAllPanels={showAllPanels}
+        onResetLayout={resetLayout}
       />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        <div className="hidden md:flex">
-          <ActivityRail
-            view={sidebarView}
-            onViewChange={setSidebarView}
-            onSettings={openSettings}
-            onHelp={openHelp}
-          />
-        </div>
-        <div className="hidden md:flex">
-          <WorkspaceSidebar
-            view={sidebarView}
-            collapsed={sidebarCollapsed}
-            onToggle={toggleSidebar}
-            width={renderedWidth}
-          />
-        </div>
-        {!sidebarCollapsed && (
+        {(activityRailVisible || sidebarVisible) && (
+          <div className="hidden md:flex">
+            <WorkspaceSidebar
+              view={sidebarView}
+              collapsed={sidebarCollapsed}
+              onToggle={toggleSidebar}
+              width={renderedWidth}
+              activityRailVisible={activityRailVisible}
+              sidebarVisible={sidebarVisible}
+              onViewChange={setSidebarView}
+              onSettings={openSettings}
+              onHelp={openHelp}
+            />
+          </div>
+        )}
+        {sidebarVisible && !sidebarCollapsed ? (
           <div className="hidden md:flex">
             <SidebarResizeHandle
               panel="explorer"
@@ -276,8 +318,13 @@ export function AppShell() {
               onResize={handleWidthChange}
             />
           </div>
+        ) : sidebarVisible || activityRailVisible ? (
+          <span className="w-1"></span>
+        ) : (
+          <></>
         )}
-        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden md:mr-1">
+
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <main
               id="workspace-main"
@@ -286,7 +333,11 @@ export function AppShell() {
               <div
                 className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
               >
-                <div className="mx-auto w-full max-w-[1280px]">
+                <div
+                  className={
+                    centeredContent ? "mx-auto w-full max-w-[1280px]" : "w-full"
+                  }
+                >
                   <Outlet />
                 </div>
               </div>

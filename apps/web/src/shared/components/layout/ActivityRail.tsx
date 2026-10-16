@@ -18,6 +18,7 @@ type Props = {
   onViewChange: (view: SidebarView) => void
   onSettings: () => void
   onHelp: () => void
+  divider?: boolean
 }
 
 const views = [
@@ -31,6 +32,7 @@ export function ActivityRail({
   onViewChange,
   onSettings,
   onHelp,
+  divider = false,
 }: Props) {
   const { theme, setTheme } = useTheme()
   const ThemeIcon = theme === "dark" ? Sun : Moon
@@ -38,7 +40,7 @@ export function ActivityRail({
   return (
     <nav
       aria-label="Workspace views"
-      className="ml-1 flex h-full w-12 shrink-0 flex-col items-center overflow-hidden rounded-l-md border border-r-0 border-border py-3"
+      className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden border-y border-l border-transparent py-3 ${divider ? "border-r border-border" : ""}`}
     >
       <NavLink
         end

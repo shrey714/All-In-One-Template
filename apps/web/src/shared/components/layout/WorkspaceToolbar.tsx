@@ -14,28 +14,55 @@ import {
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { getTool, getDomain } from "@/shared/config/registry"
+import { CustomizeLayoutMenu } from "@/shared/components/layout/CustomizeLayoutMenu"
 
 type Props = {
   onSearch: () => void
   onToggleSidebar: () => void
+  sidebarVisible: boolean
   sidebarCollapsed: boolean
   rightPanelAvailable: boolean
   rightPanelOpen: boolean
   onToggleRightPanel: () => void
+  onRightPanelOpenChange: (open: boolean) => void
   bottomPanelAvailable: boolean
   bottomPanelOpen: boolean
   onToggleBottomPanel: () => void
+  onBottomPanelOpenChange: (open: boolean) => void
+  activityRailVisible: boolean
+  onActivityRailVisibleChange: (visible: boolean) => void
+  onSidebarVisibleChange: (visible: boolean) => void
+  showStatusBar: boolean
+  onShowStatusBarChange: (visible: boolean) => void
+  centeredContent: boolean
+  onCenteredContentChange: (centered: boolean) => void
+  onFocusMode: () => void
+  onShowAllPanels: () => void
+  onResetLayout: () => void
 }
 export function WorkspaceToolbar({
   onSearch,
   onToggleSidebar,
+  sidebarVisible,
   sidebarCollapsed,
   rightPanelAvailable,
   rightPanelOpen,
   onToggleRightPanel,
+  onRightPanelOpenChange,
   bottomPanelAvailable,
   bottomPanelOpen,
   onToggleBottomPanel,
+  onBottomPanelOpenChange,
+  activityRailVisible,
+  onActivityRailVisibleChange,
+  onSidebarVisibleChange,
+  showStatusBar,
+  onShowStatusBarChange,
+  centeredContent,
+  onCenteredContentChange,
+  onFocusMode,
+  onShowAllPanels,
+  onResetLayout,
 }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -85,7 +112,7 @@ export function WorkspaceToolbar({
     domain?.name ??
     (parts[0] === "not-found" ? "Not found" : "Overview")
   return (
-    <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,min(460px,calc(100vw-160px)))_minmax(0,1fr)] items-center gap-2 px-3 py-1 sm:pl-5">
+    <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,min(460px,calc(100vw-160px)))_minmax(0,1fr)] items-center gap-2 px-3 pb-1 sm:pl-5">
       <div className="hidden min-w-0 items-center gap-2 text-xs lg:flex">
         <span className="text-muted-foreground">Orbit</span>
         <span className="text-muted-foreground/50">/</span>
@@ -136,6 +163,27 @@ export function WorkspaceToolbar({
       </div>
       <div className="justify-self-end">
         <div className="flex items-center">
+          <span className="ml-0.5">
+            <CustomizeLayoutMenu
+              activityRailVisible={activityRailVisible}
+              onActivityRailVisibleChange={onActivityRailVisibleChange}
+              sidebarVisible={sidebarVisible}
+              onSidebarVisibleChange={onSidebarVisibleChange}
+              rightPanelAvailable={rightPanelAvailable}
+              rightPanelOpen={rightPanelOpen}
+              onRightPanelChange={onRightPanelOpenChange}
+              bottomPanelAvailable={bottomPanelAvailable}
+              bottomPanelOpen={bottomPanelOpen}
+              onBottomPanelChange={onBottomPanelOpenChange}
+              statusBarVisible={showStatusBar}
+              onStatusBarVisibleChange={onShowStatusBarChange}
+              centeredContent={centeredContent}
+              onCenteredContentChange={onCenteredContentChange}
+              onFocusMode={onFocusMode}
+              onShowAll={onShowAllPanels}
+              onResetLayout={onResetLayout}
+            />
+          </span>
           <ToolbarControlSlot
             visible
             afterVisible={rightPanelAvailable || bottomPanelAvailable}
@@ -145,13 +193,23 @@ export function WorkspaceToolbar({
               size="icon-sm"
               className="size-7 rounded-sm"
               aria-label={
-                sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                !sidebarVisible
+                  ? "Show sidebar"
+                  : sidebarCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
               }
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-pressed={!sidebarCollapsed}
+              title={
+                !sidebarVisible
+                  ? "Show sidebar"
+                  : sidebarCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+              }
+              aria-pressed={sidebarVisible && !sidebarCollapsed}
               onClick={onToggleSidebar}
             >
-              {sidebarCollapsed ? (
+              {!sidebarVisible || sidebarCollapsed ? (
                 <PanelLeftOpen className="size-4" />
               ) : (
                 <PanelLeftClose className="size-4" />
