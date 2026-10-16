@@ -291,61 +291,93 @@ export function AppShell() {
                 </div>
               </div>
             </main>
-            {bottomPanelOpen && currentTool?.panels?.bottom && (
+            {currentTool?.panels?.bottom && (
               <>
                 <SidebarResizeHandle
                   panel="bottom"
-                  size={bottomPanelHeight}
-                  min={appConfig.minBottomPanelHeight}
+                  size={bottomPanelOpen ? bottomPanelHeight : 0}
+                  min={bottomPanelOpen ? appConfig.minBottomPanelHeight : 0}
                   max={appConfig.maxBottomPanelHeight}
-                  onResize={setBottomPanelHeight}
-                  onPointerDown={(event) =>
-                    onDockResizeStart("y", bottomPanelHeight, event)
-                  }
+                  onResize={(size) => {
+                    setBottomPanelOpen(true)
+                    setBottomPanelHeight(
+                      Math.min(
+                        appConfig.maxBottomPanelHeight,
+                        Math.max(appConfig.minBottomPanelHeight, size)
+                      )
+                    )
+                  }}
+                  onToggle={() => setBottomPanelOpen((value) => !value)}
+                  onPointerDown={(event) => {
+                    if (!bottomPanelOpen) setBottomPanelOpen(true)
+                    onDockResizeStart(
+                      "y",
+                      bottomPanelOpen ? bottomPanelHeight : 0,
+                      event
+                    )
+                  }}
                 />
+                {bottomPanelOpen && (
+                  <div
+                    className="shrink-0 overflow-hidden rounded-md border border-border"
+                    style={{ height: bottomPanelHeight }}
+                  >
+                    <ToolDock
+                      panel={currentTool.panels.bottom}
+                      context={{
+                        domainId: routeParts[1] ?? "",
+                        toolId: currentTool.id,
+                      }}
+                      orientation="bottom"
+                      onClose={() => setBottomPanelOpen(false)}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {currentTool?.panels?.right && (
+            <>
+              <SidebarResizeHandle
+                panel="right"
+                size={rightPanelOpen ? rightPanelWidth : 0}
+                min={rightPanelOpen ? appConfig.minRightPanelWidth : 0}
+                max={appConfig.maxRightPanelWidth}
+                onResize={(size) => {
+                  setRightPanelOpen(true)
+                  setRightPanelWidth(
+                    Math.min(
+                      appConfig.maxRightPanelWidth,
+                      Math.max(appConfig.minRightPanelWidth, size)
+                    )
+                  )
+                }}
+                onToggle={() => setRightPanelOpen((value) => !value)}
+                onPointerDown={(event) => {
+                  if (!rightPanelOpen) setRightPanelOpen(true)
+                  onDockResizeStart(
+                    "x",
+                    rightPanelOpen ? rightPanelWidth : 0,
+                    event
+                  )
+                }}
+              />
+              {rightPanelOpen && (
                 <div
                   className="shrink-0 overflow-hidden rounded-md border border-border"
-                  style={{ height: bottomPanelHeight }}
+                  style={{ width: rightPanelWidth }}
                 >
                   <ToolDock
-                    panel={currentTool.panels.bottom}
+                    panel={currentTool.panels.right}
                     context={{
                       domainId: routeParts[1] ?? "",
                       toolId: currentTool.id,
                     }}
-                    orientation="bottom"
-                    onClose={() => setBottomPanelOpen(false)}
+                    orientation="right"
+                    onClose={() => setRightPanelOpen(false)}
                   />
                 </div>
-              </>
-            )}
-          </div>
-          {rightPanelOpen && currentTool?.panels?.right && (
-            <>
-              <SidebarResizeHandle
-                panel="right"
-                size={rightPanelWidth}
-                min={appConfig.minRightPanelWidth}
-                max={appConfig.maxRightPanelWidth}
-                onResize={setRightPanelWidth}
-                onPointerDown={(event) =>
-                  onDockResizeStart("x", rightPanelWidth, event)
-                }
-              />
-              <div
-                className="shrink-0 overflow-hidden rounded-md border border-border"
-                style={{ width: rightPanelWidth }}
-              >
-                <ToolDock
-                  panel={currentTool.panels.right}
-                  context={{
-                    domainId: routeParts[1] ?? "",
-                    toolId: currentTool.id,
-                  }}
-                  orientation="right"
-                  onClose={() => setRightPanelOpen(false)}
-                />
-              </div>
+              )}
             </>
           )}
         </div>
