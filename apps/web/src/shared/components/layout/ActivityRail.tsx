@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom"
+import { Link } from "react-router-dom"
 import {
   Clock3,
   Command,
@@ -43,18 +43,15 @@ export function ActivityRail({
       aria-label="Workspace views"
       className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden py-3 ${divider ? "border-r border-border" : ""}`}
     >
-      <NavLink
-        end
+      <Link
         aria-label="Go to dashboard"
         title="Dashboard"
         to="/"
-        className={({ isActive }) =>
-          `mb-5 grid size-9 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`
-        }
+        className={`mb-5 grid size-9 place-items-center rounded-xl transition-colors bg-primary text-primary-foreground shadow-sm`}
         onClick={() => onViewChange("explorer")}
       >
         <Command className="size-4" />
-      </NavLink>
+      </Link>
       <div className="flex flex-col items-center gap-1.5">
         {views.map(({ id, label, icon: Icon }) => (
           <Button

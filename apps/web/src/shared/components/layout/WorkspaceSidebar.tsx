@@ -73,7 +73,6 @@ export function WorkspaceSidebar({
 }: Props) {
   const pinnedTools = usePinnedTools()
   const recentTools = useRecentTools()
-  const [filterOpen, setFilterOpen] = useState(false)
   const [filterQueries, setFilterQueries] = useState<
     Record<SidebarView, string>
   >({ explorer: "", pinned: "", recent: "" })
@@ -227,83 +226,46 @@ export function WorkspaceSidebar({
           </div>
         </div>
 
-        <div className="flex w-full shrink-0 items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <HeadingIcon className="size-3.5 text-muted-foreground" />
-            <span className="truncate text-[10px] font-bold tracking-[.16em] text-muted-foreground uppercase">
-              {heading}
-            </span>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {view === "recent" && recentTools.length > 0 && (
+        <div className="flex w-full shrink-0 items-center gap-1.5 p-1.5">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              aria-label={`Filter ${heading.toLowerCase()}`}
+              placeholder={`Search ${heading.toLowerCase()}…`}
+              value={filterQuery}
+              onChange={(event) => setFilterQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setFilterQuery("")
+              }}
+              className="h-8 pr-8 pl-8 text-xs rounded-sm"
+            />
+            {filterQuery && (
               <Button
                 variant="ghost"
                 size="icon-xs"
-                title="Clear recent tools"
-                aria-label="Clear recent tools"
-                onClick={clearRecentTools}
+                aria-label="Clear sidebar search"
+                onClick={() => setFilterQuery("")}
+                className="absolute top-1/2 right-1 size-6 -translate-y-1/2"
               >
-                <Trash2 className="size-3.5" />
+                <X className="size-3" />
               </Button>
             )}
+          </div>
+          {view === "recent" && recentTools.length > 0 && (
             <Button
               variant="ghost"
               size="icon-xs"
-              title={
-                filterOpen
-                  ? "Close sidebar filter"
-                  : `Filter ${heading.toLowerCase()}`
-              }
-              aria-label={
-                filterOpen
-                  ? "Close sidebar filter"
-                  : `Filter ${heading.toLowerCase()}`
-              }
-              aria-pressed={filterOpen}
-              onClick={() => {
-                setFilterOpen((value) => !value)
-                setFilterQuery("")
-              }}
+              title="Clear recent tools"
+              aria-label="Clear recent tools"
+              onClick={clearRecentTools}
             >
-              <Search className="size-3.5" />
+              <Trash2 className="size-3.5" />
             </Button>
-          </div>
+          )}
         </div>
-        {filterOpen && (
-          <div className="px-3 pb-3">
-            <div className="relative">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                autoFocus
-                aria-label={`Filter ${heading.toLowerCase()}`}
-                placeholder={`Filter ${heading.toLowerCase()}…`}
-                value={filterQuery}
-                onChange={(event) => setFilterQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    setFilterQuery("")
-                    setFilterOpen(false)
-                  }
-                }}
-                className="h-8 pr-8 pl-8 text-xs"
-              />
-              {filterQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label="Clear sidebar filter"
-                  onClick={() => setFilterQuery("")}
-                  className="absolute top-1/2 right-1 size-6 -translate-y-1/2"
-                >
-                  <X className="size-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="min-h-0 w-full flex-1 overflow-y-auto px-2 pb-3">
           {view === "explorer" ? (
