@@ -85,7 +85,7 @@ export function WorkspaceToolbar({
     domain?.name ??
     (parts[0] === "not-found" ? "Not found" : "Overview")
   return (
-    <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,min(460px,calc(100vw-160px)))_minmax(0,1fr)] items-center gap-2 px-3 py-1 sm:px-5">
+    <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,min(460px,calc(100vw-160px)))_minmax(0,1fr)] items-center gap-2 px-3 py-1 sm:pl-5">
       <div className="hidden min-w-0 items-center gap-2 text-xs lg:flex">
         <span className="text-muted-foreground">Orbit</span>
         <span className="text-muted-foreground/50">/</span>
@@ -139,7 +139,7 @@ export function WorkspaceToolbar({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="size-8 rounded-sm"
+            className="size-7 rounded-sm"
             aria-label={
               sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
             }
@@ -157,7 +157,7 @@ export function WorkspaceToolbar({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="size-8 rounded-sm"
+              className="size-7 rounded-sm"
               aria-label={
                 rightPanelOpen ? "Close right panel" : "Open right panel"
               }
@@ -176,7 +176,7 @@ export function WorkspaceToolbar({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="size-8 rounded-sm"
+              className="size-7 rounded-sm"
               aria-label={
                 bottomPanelOpen ? "Close bottom panel" : "Open bottom panel"
               }
