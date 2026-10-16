@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom"
-import { Activity, Radio, Settings2 } from "lucide-react"
+import { Activity, Radio, Wrench } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { getTool } from "@/shared/config/registry"
 
@@ -34,8 +34,8 @@ export function WorkspaceStatusBar({ onOpenSettings }: Props) {
         title="Open settings"
         onClick={onOpenSettings}
       >
-        <Settings2 className="size-3.5" />
-        Settings
+        <Wrench className="size-3.5" />
+        Configuration
       </Button>
     </footer>
   )

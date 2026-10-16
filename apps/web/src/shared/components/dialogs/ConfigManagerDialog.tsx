@@ -324,7 +324,7 @@ function SectionButton({
       type="button"
       aria-current={selected ? "page" : undefined}
       onClick={onClick}
-      className={`flex min-h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none w-[stretch] ${selected ? "bg-accent font-medium text-accent-foreground" : "text-foreground hover:bg-muted"}`}
+      className={`flex min-h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${nested ? "ml-2 w-[calc(100%-0.5rem)]" : ""} ${selected ? "bg-accent font-medium text-accent-foreground" : "text-foreground hover:bg-muted"}`}
     >
       <Icon className="size-3.5 shrink-0" />
       <span className="truncate">{section.label}</span>

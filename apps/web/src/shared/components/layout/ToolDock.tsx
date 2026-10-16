@@ -24,7 +24,7 @@ export function ToolDock({
     <section
       aria-label={panel.title}
       data-dock={orientation}
-      className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-background"
     >
       <header className="flex h-9 shrink-0 items-center justify-between border-b px-3">
         <h2 className="truncate text-xs font-semibold">{panel.title}</h2>
@@ -39,7 +39,7 @@ export function ToolDock({
           <X className="size-3.5" />
         </Button>
       </header>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3">
         <Panel {...context} />
       </div>
     </section>

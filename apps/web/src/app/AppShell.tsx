@@ -377,7 +377,7 @@ export function AppShell() {
                 />
                 {bottomPanelOpen && (
                   <div
-                    className="shrink-0 overflow-hidden rounded-md border border-border"
+                    className="flex min-h-0 min-w-0 shrink-0 flex-col overflow-hidden rounded-md border border-border"
                     style={{ height: bottomPanelHeight }}
                   >
                     <ToolDock
@@ -422,7 +422,7 @@ export function AppShell() {
               />
               {rightPanelOpen && (
                 <div
-                  className="shrink-0 overflow-hidden rounded-md border border-border"
+                  className="flex min-h-0 min-w-0 shrink-0 overflow-hidden rounded-md border border-border"
                   style={{ width: rightPanelWidth }}
                 >
                   <ToolDock

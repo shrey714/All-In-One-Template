@@ -91,13 +91,16 @@ export function EmiAmortizationPanel() {
     return schedule
   }, [])
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[560px] text-left text-xs">
+    <div className="w-full min-w-0 overflow-hidden rounded-md border">
+      <table className="w-full table-fixed text-left text-[10px] sm:text-xs">
         <thead className="sticky top-0 bg-muted/70 text-muted-foreground">
           <tr>
             {["Month", "Payment", "Principal", "Interest", "Balance"].map(
               (label) => (
-                <th key={label} className="px-3 py-2 font-medium">
+                <th
+                  key={label}
+                  className="px-2 py-2 font-medium break-words sm:px-3"
+                >
                   {label}
                 </th>
               )
@@ -107,17 +110,19 @@ export function EmiAmortizationPanel() {
         <tbody>
           {rows.map((row) => (
             <tr key={row.month} className="border-t">
-              <td className="px-3 py-2 tabular-nums">{row.month}</td>
-              <td className="px-3 py-2 tabular-nums">
+              <td className="px-2 py-2 break-words tabular-nums sm:px-3">
+                {row.month}
+              </td>
+              <td className="px-2 py-2 break-words tabular-nums sm:px-3">
                 {currency(row.payment)}
               </td>
-              <td className="px-3 py-2 tabular-nums">
+              <td className="px-2 py-2 break-words tabular-nums sm:px-3">
                 {currency(row.principal)}
               </td>
-              <td className="px-3 py-2 tabular-nums">
+              <td className="px-2 py-2 break-words tabular-nums sm:px-3">
                 {currency(row.interest)}
               </td>
-              <td className="px-3 py-2 tabular-nums">
+              <td className="px-2 py-2 break-words tabular-nums sm:px-3">
                 {currency(row.balance)}
               </td>
             </tr>
