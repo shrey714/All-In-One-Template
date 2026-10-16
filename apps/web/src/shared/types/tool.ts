@@ -5,6 +5,17 @@ export type ToolPanelDefinition = {
   title: string
   component: ComponentType<ToolContext>
 }
+export type ToolSettingsPanelContext = {
+  domainId: string
+  toolId: string
+}
+export type ToolSettingsPanelDefinition = {
+  id: string
+  label: string
+  description: string
+  keywords?: string[]
+  component: ComponentType<ToolSettingsPanelContext>
+}
 export type ToolDefinition = {
   id: string
   name: string
@@ -17,4 +28,5 @@ export type ToolDefinition = {
     right?: ToolPanelDefinition
     bottom?: ToolPanelDefinition
   }
+  settings?: ToolSettingsPanelDefinition[]
 }

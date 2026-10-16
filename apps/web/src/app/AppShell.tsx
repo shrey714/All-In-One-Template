@@ -7,7 +7,7 @@ import {
   type PointerEvent,
 } from "react"
 import { Outlet, useLocation } from "react-router-dom"
-import type { SidebarView } from "@/shared/components/layout/ActivityRail"
+import type { SidebarView } from "@/shared/types/workspace"
 import { SidebarResizeHandle } from "@/shared/components/layout/SidebarResizeHandle"
 import { WorkspaceSidebar } from "@/shared/components/layout/WorkspaceSidebar"
 import { ToolDock } from "@/shared/components/layout/ToolDock"
@@ -75,6 +75,7 @@ export function AppShell() {
     null
   )
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsSession, setSettingsSession] = useState(0)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
   const dockDrag = useRef<{
@@ -92,7 +93,10 @@ export function AppShell() {
     () => setSidebarCollapsed((value) => !value),
     [setSidebarCollapsed]
   )
-  const openSettings = useCallback(() => setSettingsOpen(true), [])
+  const openSettings = useCallback(() => {
+    setSettingsSession((session) => session + 1)
+    setSettingsOpen(true)
+  }, [])
   const openHelp = useCallback(() => setShortcutsOpen(true), [])
   const shortcutActions = useMemo(
     () => ({
@@ -436,18 +440,41 @@ export function AppShell() {
           )}
         </div>
       </div>
-      {showStatusBar && (
-        <WorkspaceStatusBar collapsed={sidebarCollapsed} width={sidebarWidth} />
-      )}
+      {showStatusBar && <WorkspaceStatusBar onOpenSettings={openSettings} />}
       <ConfigManagerDialog
+        key={settingsSession}
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        tool={currentTool}
+        toolDomainId={routeParts[1]}
         compact={compact}
         onCompactChange={setCompact}
         showStatusBar={showStatusBar}
         onStatusBarChange={setShowStatusBar}
+        activityRailVisible={activityRailVisible}
+        onActivityRailVisibleChange={setActivityRailVisible}
+        sidebarView={sidebarView}
+        onSidebarViewChange={setSidebarView}
+        sidebarVisible={sidebarVisible}
+        onSidebarVisibleChange={setSidebarVisible}
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarCollapsedChange={setSidebarCollapsed}
         sidebarWidth={sidebarWidth}
         onSidebarWidthChange={setSidebarWidth}
+        rightPanelAvailable={Boolean(currentTool?.panels?.right)}
+        rightPanelOpen={rightPanelOpen}
+        onRightPanelOpenChange={setRightPanelOpen}
+        rightPanelWidth={rightPanelWidth}
+        onRightPanelWidthChange={setRightPanelWidth}
+        bottomPanelAvailable={Boolean(currentTool?.panels?.bottom)}
+        bottomPanelOpen={bottomPanelOpen}
+        onBottomPanelOpenChange={setBottomPanelOpen}
+        bottomPanelHeight={bottomPanelHeight}
+        onBottomPanelHeightChange={setBottomPanelHeight}
+        centeredContent={centeredContent}
+        onCenteredContentChange={setCenteredContent}
+        onFocusMode={enableFocusMode}
+        onShowAllPanels={showAllPanels}
         onResetLayout={resetLayout}
       />
       <ShortcutHelpDialog

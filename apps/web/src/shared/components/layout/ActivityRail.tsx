@@ -11,8 +11,9 @@ import {
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "@/app/providers"
+import type { SidebarView } from "@/shared/types/workspace"
 
-export type SidebarView = "explorer" | "pinned" | "recent"
+export type { SidebarView } from "@/shared/types/workspace"
 type Props = {
   view: SidebarView
   onViewChange: (view: SidebarView) => void
