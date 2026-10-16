@@ -124,6 +124,11 @@
   button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
   ::selection { background: color-mix(in oklch, var(--primary) 24%, transparent); }
 }
-.workspace-content { scrollbar-gutter: stable; }
-.workspace-content::-webkit-scrollbar { width: 10px; height: 10px; }
-.workspace-content::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: color-mix(in oklch, var(--muted-foreground) 35%, transparent); background-clip: padding-box; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 68%, var(--background)) color-mix(in oklch, var(--muted) 55%, var(--background));
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: color-mix(in oklch, var(--muted) 55%, var(--background)); border-radius: 999px; }
+*::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: color-mix(in oklch, var(--muted-foreground) 68%, var(--background)); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--primary); background-clip: padding-box; }
