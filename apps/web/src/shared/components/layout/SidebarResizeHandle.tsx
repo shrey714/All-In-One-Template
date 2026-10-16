@@ -96,7 +96,7 @@ export function SidebarResizeHandle({
       onPointerCancel={onPointerEnd}
       onLostPointerCapture={() => setDragging(false)}
       onKeyDown={onKeyDown}
-      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-1 cursor-row-resize" : "w-1 cursor-col-resize"} before:absolute before:rounded-lg before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-1 before:-translate-y-1/2" : "before:inset-y-2 before:left-1/2 before:w-1 before:-translate-x-1/2"} ${dragging ? "before:bg-primary" : "hover:before:bg-primary focus-visible:before:bg-primary"} before:duration-200`}
+      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-1 cursor-row-resize" : "w-1 cursor-col-resize"} before:absolute before:rounded-lg before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-1 before:-translate-y-1/2" : "before:inset-y-2 before:left-1/2 before:w-1 before:-translate-x-1/2"} ${dragging ? "before:bg-primary" : "hover:before:bg-primary focus-visible:before:bg-primary"} before:duration-200 before:delay-200`}
     >
       <span className="self-center text-border">
         {horizontal ? (
