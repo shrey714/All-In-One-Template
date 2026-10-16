@@ -1,5 +1,5 @@
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react"
-import { GripHorizontal, GripVertical } from "lucide-react"
+import { Ellipsis, EllipsisVertical } from "lucide-react"
 
 type Panel = "explorer" | "right" | "bottom"
 type Props = {
@@ -74,15 +74,18 @@ export function SidebarResizeHandle({
       tabIndex={0}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
-      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-[3px] cursor-row-resize" : "w-[3px] cursor-col-resize"} before:absolute before:border-x before:border-double before:border-transparent before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-[3px] before:-translate-y-1/2 before:border-y" : "before:inset-y-2 before:left-1/2 before:w-[3px] before:-translate-x-1/2"} hover:before:border-primary focus-visible:before:border-primary`}
+      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-1 cursor-row-resize" : "w-1 cursor-col-resize"} before:absolute before:rounded-lg before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-1 before:-translate-y-1/2" : "before:inset-y-2 before:left-1/2 before:w-1 before:-translate-x-1/2"} hover:before:bg-primary focus-visible:before:bg-primary before:duration-200`}
     >
-      <span className="pointer-events-none absolute top-1/2 left-1/2 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-md border border-border bg-background text-muted-foreground opacity-0 shadow-sm transition-all duration-150 group-hover:border-primary/50 group-hover:bg-card group-hover:text-primary group-hover:opacity-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-primary/20 group-focus-visible:border-primary/50 group-focus-visible:bg-card group-focus-visible:text-primary group-focus-visible:opacity-100 group-focus-visible:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-primary/20">
+        <span className="self-center text-border">
         {horizontal ? (
-          <GripHorizontal className="size-4" />
+          <Ellipsis className="size-4" />
         ) : (
-          <GripVertical className="size-4" />
+          <EllipsisVertical className="size-4" />
         )}
       </span>
+
+
     </div>
   )
 }
+// bg-primary

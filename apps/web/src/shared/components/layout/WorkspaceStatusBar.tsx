@@ -13,7 +13,7 @@ export function WorkspaceStatusBar({ collapsed, width }: Props) {
       : undefined
 
   return (
-    <footer className="flex h-6 shrink-0 items-center justify-between border-t border-border bg-primary/5 px-3 text-[10px] text-muted-foreground">
+    <footer className="flex py-1 shrink-0 items-center justify-between px-3 text-[10px] text-muted-foreground">
       <div className="flex items-center gap-3">
         <span className="flex items-center gap-1">
           <Radio className="size-3 text-emerald-500" />
