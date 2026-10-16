@@ -13,6 +13,7 @@ import {
 } from "@/shared/components/layout/ActivityRail"
 import { SidebarResizeHandle } from "@/shared/components/layout/SidebarResizeHandle"
 import { WorkspaceSidebar } from "@/shared/components/layout/WorkspaceSidebar"
+import { DockResizeHandle, ToolDock } from "@/shared/components/layout/ToolDock"
 import { WorkspaceStatusBar } from "@/shared/components/layout/WorkspaceStatusBar"
 import { WorkspaceToolbar } from "@/shared/components/layout/WorkspaceToolbar"
 import { CommandSearchDialog } from "@/shared/components/dialogs/CommandSearchDialog"
@@ -34,6 +35,22 @@ export function AppShell() {
     `${appConfig.storageNamespace}.sidebar-collapsed`,
     false
   )
+  const [rightPanelOpen, setRightPanelOpen] = usePersistentState(
+    `${appConfig.storageNamespace}.right-panel-open`,
+    false
+  )
+  const [bottomPanelOpen, setBottomPanelOpen] = usePersistentState(
+    `${appConfig.storageNamespace}.bottom-panel-open`,
+    false
+  )
+  const [rightPanelWidth, setRightPanelWidth] = usePersistentState<number>(
+    `${appConfig.storageNamespace}.right-panel-width`,
+    appConfig.defaultRightPanelWidth
+  )
+  const [bottomPanelHeight, setBottomPanelHeight] = usePersistentState<number>(
+    `${appConfig.storageNamespace}.bottom-panel-height`,
+    appConfig.defaultBottomPanelHeight
+  )
   const [sidebarView, setSidebarView] = usePersistentState<SidebarView>(
     `${appConfig.storageNamespace}.sidebar-view`,
     "explorer"
@@ -50,6 +67,16 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
+  const dockDrag = useRef<{
+    axis: "x" | "y"
+    start: number
+    size: number
+  } | null>(null)
+  const routeParts = location.pathname.split("/").filter(Boolean)
+  const currentTool =
+    routeParts[0] === "domains" && routeParts[2] === "tools"
+      ? getTool(routeParts[1] ?? "", routeParts[3] ?? "")
+      : undefined
   const openSearch = useCallback(() => setSearchOpen(true), [])
   const toggleSidebar = useCallback(
     () => setSidebarCollapsed((value) => !value),
@@ -133,9 +160,67 @@ export function AppShell() {
     }
   }, [setSidebarWidth])
 
+  const onDockResizeStart = (
+    axis: "x" | "y",
+    size: number,
+    event: PointerEvent<HTMLDivElement>
+  ) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    dockDrag.current = {
+      axis,
+      start: axis === "x" ? event.clientX : event.clientY,
+      size,
+    }
+    document.body.style.cursor = axis === "x" ? "col-resize" : "row-resize"
+    document.body.style.userSelect = "none"
+  }
+
+  useEffect(() => {
+    const onMove = (event: globalThis.PointerEvent) => {
+      const active = dockDrag.current
+      if (!active) return
+      const coordinate = active.axis === "x" ? event.clientX : event.clientY
+      const delta = coordinate - active.start
+      if (active.axis === "x") {
+        setRightPanelWidth(
+          Math.min(
+            appConfig.maxRightPanelWidth,
+            Math.max(appConfig.minRightPanelWidth, active.size - delta)
+          )
+        )
+      } else {
+        setBottomPanelHeight(
+          Math.min(
+            appConfig.maxBottomPanelHeight,
+            Math.max(appConfig.minBottomPanelHeight, active.size - delta)
+          )
+        )
+      }
+    }
+    const onUp = () => {
+      dockDrag.current = null
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+    }
+    window.addEventListener("pointermove", onMove)
+    window.addEventListener("pointerup", onUp)
+    window.addEventListener("pointercancel", onUp)
+    return () => {
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+      window.removeEventListener("pointercancel", onUp)
+      onUp()
+    }
+  }, [setRightPanelWidth, setBottomPanelHeight])
+
   const resetLayout = () => {
     setSidebarWidth(appConfig.defaultSidebarWidth)
     setSidebarCollapsed(false)
+    setRightPanelOpen(false)
+    setBottomPanelOpen(false)
+    setRightPanelWidth(appConfig.defaultRightPanelWidth)
+    setBottomPanelHeight(appConfig.defaultBottomPanelHeight)
     setSidebarView("explorer")
     setCompact(false)
     setShowStatusBar(true)
@@ -155,6 +240,12 @@ export function AppShell() {
         onSearch={openSearch}
         onToggleSidebar={toggleSidebar}
         sidebarCollapsed={sidebarCollapsed}
+        rightPanelAvailable={Boolean(currentTool?.panels?.right)}
+        rightPanelOpen={rightPanelOpen}
+        onToggleRightPanel={() => setRightPanelOpen((value) => !value)}
+        bottomPanelAvailable={Boolean(currentTool?.panels?.bottom)}
+        bottomPanelOpen={bottomPanelOpen}
+        onToggleBottomPanel={() => setBottomPanelOpen((value) => !value)}
       />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div className="hidden md:flex">
@@ -185,18 +276,78 @@ export function AppShell() {
             />
           </div>
         )}
-        <main
-          id="workspace-main"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:mr-1 md:ml-0.5 md:rounded-md md:border md:border-border"
-        >
-          <div
-            className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
-          >
-            <div className="mx-auto w-full max-w-[1280px]">
-              <Outlet />
-            </div>
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden md:mr-1 md:ml-[3px]">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <main
+              id="workspace-main"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:rounded-md md:border md:border-border"
+            >
+              <div
+                className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
+              >
+                <div className="mx-auto w-full max-w-[1280px]">
+                  <Outlet />
+                </div>
+              </div>
+            </main>
+            {bottomPanelOpen && currentTool?.panels?.bottom && (
+              <>
+                <DockResizeHandle
+                  orientation="horizontal"
+                  size={bottomPanelHeight}
+                  min={appConfig.minBottomPanelHeight}
+                  max={appConfig.maxBottomPanelHeight}
+                  onResize={setBottomPanelHeight}
+                  onPointerDown={(event) =>
+                    onDockResizeStart("y", bottomPanelHeight, event)
+                  }
+                />
+                <div
+                  className="shrink-0 overflow-hidden rounded-md border border-border"
+                  style={{ height: bottomPanelHeight }}
+                >
+                  <ToolDock
+                    panel={currentTool.panels.bottom}
+                    context={{
+                      domainId: routeParts[1] ?? "",
+                      toolId: currentTool.id,
+                    }}
+                    orientation="bottom"
+                    onClose={() => setBottomPanelOpen(false)}
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </main>
+          {rightPanelOpen && currentTool?.panels?.right && (
+            <>
+              <DockResizeHandle
+                orientation="vertical"
+                size={rightPanelWidth}
+                min={appConfig.minRightPanelWidth}
+                max={appConfig.maxRightPanelWidth}
+                onResize={setRightPanelWidth}
+                onPointerDown={(event) =>
+                  onDockResizeStart("x", rightPanelWidth, event)
+                }
+              />
+              <div
+                className="shrink-0 overflow-hidden rounded-md border border-border"
+                style={{ width: rightPanelWidth }}
+              >
+                <ToolDock
+                  panel={currentTool.panels.right}
+                  context={{
+                    domainId: routeParts[1] ?? "",
+                    toolId: currentTool.id,
+                  }}
+                  orientation="right"
+                  onClose={() => setRightPanelOpen(false)}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {showStatusBar && (
         <WorkspaceStatusBar collapsed={sidebarCollapsed} width={sidebarWidth} />

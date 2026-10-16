@@ -4,8 +4,12 @@ import {
   ArrowLeft,
   ArrowRight,
   Command,
+  PanelBottomClose,
+  PanelBottomOpen,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Search,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
@@ -15,11 +19,23 @@ type Props = {
   onSearch: () => void
   onToggleSidebar: () => void
   sidebarCollapsed: boolean
+  rightPanelAvailable: boolean
+  rightPanelOpen: boolean
+  onToggleRightPanel: () => void
+  bottomPanelAvailable: boolean
+  bottomPanelOpen: boolean
+  onToggleBottomPanel: () => void
 }
 export function WorkspaceToolbar({
   onSearch,
   onToggleSidebar,
   sidebarCollapsed,
+  rightPanelAvailable,
+  rightPanelOpen,
+  onToggleRightPanel,
+  bottomPanelAvailable,
+  bottomPanelOpen,
+  onToggleBottomPanel,
 }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -119,20 +135,65 @@ export function WorkspaceToolbar({
         </Button>
       </div>
       <div className="justify-self-end">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="size-8 rounded-sm"
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onClick={onToggleSidebar}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen className="size-4" />
-          ) : (
-            <PanelLeftClose className="size-4" />
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-8 rounded-sm"
+            aria-label={
+              sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            }
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={!sidebarCollapsed}
+            onClick={onToggleSidebar}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </Button>
+          {rightPanelAvailable && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-8 rounded-sm"
+              aria-label={
+                rightPanelOpen ? "Close right panel" : "Open right panel"
+              }
+              title={rightPanelOpen ? "Close right panel" : "Open right panel"}
+              aria-pressed={rightPanelOpen}
+              onClick={onToggleRightPanel}
+            >
+              {rightPanelOpen ? (
+                <PanelRightClose className="size-4" />
+              ) : (
+                <PanelRightOpen className="size-4" />
+              )}
+            </Button>
           )}
-        </Button>
+          {bottomPanelAvailable && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-8 rounded-sm"
+              aria-label={
+                bottomPanelOpen ? "Close bottom panel" : "Open bottom panel"
+              }
+              title={
+                bottomPanelOpen ? "Close bottom panel" : "Open bottom panel"
+              }
+              aria-pressed={bottomPanelOpen}
+              onClick={onToggleBottomPanel}
+            >
+              {bottomPanelOpen ? (
+                <PanelBottomClose className="size-4" />
+              ) : (
+                <PanelBottomOpen className="size-4" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   )

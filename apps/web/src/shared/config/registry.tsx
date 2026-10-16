@@ -1,5 +1,9 @@
 import { Calculator, HeartPulse, Timer, Wallet, Zap } from "lucide-react"
 import { EmiCalculator } from "@/domains/finance/tools/emi-calculator/EmiCalculator"
+import {
+  EmiAmortizationPanel,
+  EmiInsightsPanel,
+} from "@/domains/finance/tools/emi-calculator/EmiPanels"
 import { PomodoroTimer } from "@/domains/productivity/tools/pomodoro-timer/PomodoroTimer"
 import { financeDomain } from "@/domains/finance/config/domain"
 import { productivityDomain } from "@/domains/productivity/config/domain"
@@ -10,8 +14,35 @@ export type { DomainDefinition } from "@/shared/types/domain"
 export type { ToolContext, ToolDefinition } from "@/shared/types/tool"
 
 const registeredTools: Record<string, ToolDefinition[]> = {
-  finance: [{ id: "emi-calculator", name: "EMI calculator", description: "Estimate monthly loan payments and total interest.", icon: Calculator, href: "/domains/finance/tools/emi-calculator", category: "Calculators", component: EmiCalculator }],
-  productivity: [{ id: "pomodoro-timer", name: "Pomodoro timer", description: "Work in focused intervals with restorative breaks.", icon: Timer, href: "/domains/productivity/tools/pomodoro-timer", category: "Focus", component: PomodoroTimer }],
+  finance: [
+    {
+      id: "emi-calculator",
+      name: "EMI calculator",
+      description: "Estimate monthly loan payments and total interest.",
+      icon: Calculator,
+      href: "/domains/finance/tools/emi-calculator",
+      category: "Calculators",
+      component: EmiCalculator,
+      panels: {
+        right: { title: "Loan insights", component: EmiInsightsPanel },
+        bottom: {
+          title: "Amortization schedule",
+          component: EmiAmortizationPanel,
+        },
+      },
+    },
+  ],
+  productivity: [
+    {
+      id: "pomodoro-timer",
+      name: "Pomodoro timer",
+      description: "Work in focused intervals with restorative breaks.",
+      icon: Timer,
+      href: "/domains/productivity/tools/pomodoro-timer",
+      category: "Focus",
+      component: PomodoroTimer,
+    },
+  ],
   health: [],
 }
 export const domains: DomainDefinition[] = [
@@ -19,7 +50,19 @@ export const domains: DomainDefinition[] = [
   { ...productivityDomain, tools: registeredTools.productivity },
   { ...healthDomain, tools: registeredTools.health },
 ]
-export const allTools = domains.flatMap(domain => domain.tools.map(tool => ({ ...tool, domainId: domain.id, domainName: domain.name })))
-export const getDomain = (domainId: string) => domains.find(domain => domain.id === domainId)
-export const getTool = (domainId: string, toolId: string) => getDomain(domainId)?.tools.find(tool => tool.id === toolId)
-export const domainIcons = { finance: Wallet, productivity: Zap, health: HeartPulse }
+export const allTools = domains.flatMap((domain) =>
+  domain.tools.map((tool) => ({
+    ...tool,
+    domainId: domain.id,
+    domainName: domain.name,
+  }))
+)
+export const getDomain = (domainId: string) =>
+  domains.find((domain) => domain.id === domainId)
+export const getTool = (domainId: string, toolId: string) =>
+  getDomain(domainId)?.tools.find((tool) => tool.id === toolId)
+export const domainIcons = {
+  finance: Wallet,
+  productivity: Zap,
+  health: HeartPulse,
+}
