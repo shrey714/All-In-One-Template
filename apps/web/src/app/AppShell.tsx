@@ -13,7 +13,7 @@ import {
 } from "@/shared/components/layout/ActivityRail"
 import { SidebarResizeHandle } from "@/shared/components/layout/SidebarResizeHandle"
 import { WorkspaceSidebar } from "@/shared/components/layout/WorkspaceSidebar"
-import { DockResizeHandle, ToolDock } from "@/shared/components/layout/ToolDock"
+import { ToolDock } from "@/shared/components/layout/ToolDock"
 import { WorkspaceStatusBar } from "@/shared/components/layout/WorkspaceStatusBar"
 import { WorkspaceToolbar } from "@/shared/components/layout/WorkspaceToolbar"
 import { CommandSearchDialog } from "@/shared/components/dialogs/CommandSearchDialog"
@@ -267,12 +267,13 @@ export function AppShell() {
         {!sidebarCollapsed && (
           <div className="hidden md:flex">
             <SidebarResizeHandle
-              width={renderedWidth}
+              panel="explorer"
+              size={renderedWidth}
               min={appConfig.minSidebarWidth}
               max={appConfig.maxSidebarWidth}
               onToggle={toggleSidebar}
               onPointerDown={onResizeStart}
-              onWidthChange={handleWidthChange}
+              onResize={handleWidthChange}
             />
           </div>
         )}
@@ -292,8 +293,8 @@ export function AppShell() {
             </main>
             {bottomPanelOpen && currentTool?.panels?.bottom && (
               <>
-                <DockResizeHandle
-                  orientation="horizontal"
+                <SidebarResizeHandle
+                  panel="bottom"
                   size={bottomPanelHeight}
                   min={appConfig.minBottomPanelHeight}
                   max={appConfig.maxBottomPanelHeight}
@@ -321,8 +322,8 @@ export function AppShell() {
           </div>
           {rightPanelOpen && currentTool?.panels?.right && (
             <>
-              <DockResizeHandle
-                orientation="vertical"
+              <SidebarResizeHandle
+                panel="right"
                 size={rightPanelWidth}
                 min={appConfig.minRightPanelWidth}
                 max={appConfig.maxRightPanelWidth}
