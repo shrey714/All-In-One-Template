@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom"
 import {
   ArrowLeft,
@@ -135,25 +135,33 @@ export function WorkspaceToolbar({
         </Button>
       </div>
       <div className="justify-self-end">
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 rounded-sm"
-            aria-label={
-              sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-            }
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-pressed={!sidebarCollapsed}
-            onClick={onToggleSidebar}
+        <div className="flex items-center">
+          <ToolbarControlSlot
+            visible
+            afterVisible={rightPanelAvailable || bottomPanelAvailable}
           >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
-          </Button>
-          {rightPanelAvailable && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-7 rounded-sm"
+              aria-label={
+                sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+              }
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={!sidebarCollapsed}
+              onClick={onToggleSidebar}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="size-4" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
+            </Button>
+          </ToolbarControlSlot>
+          <ToolbarControlSlot
+            visible={rightPanelAvailable}
+            afterVisible={bottomPanelAvailable}
+          >
             <Button
               variant="ghost"
               size="icon-sm"
@@ -164,6 +172,7 @@ export function WorkspaceToolbar({
               title={rightPanelOpen ? "Close right panel" : "Open right panel"}
               aria-pressed={rightPanelOpen}
               onClick={onToggleRightPanel}
+              disabled={!rightPanelAvailable}
             >
               {rightPanelOpen ? (
                 <PanelRightClose className="size-4" />
@@ -171,8 +180,8 @@ export function WorkspaceToolbar({
                 <PanelRightOpen className="size-4" />
               )}
             </Button>
-          )}
-          {bottomPanelAvailable && (
+          </ToolbarControlSlot>
+          <ToolbarControlSlot visible={bottomPanelAvailable}>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -185,6 +194,7 @@ export function WorkspaceToolbar({
               }
               aria-pressed={bottomPanelOpen}
               onClick={onToggleBottomPanel}
+              disabled={!bottomPanelAvailable}
             >
               {bottomPanelOpen ? (
                 <PanelBottomClose className="size-4" />
@@ -192,9 +202,28 @@ export function WorkspaceToolbar({
                 <PanelBottomOpen className="size-4" />
               )}
             </Button>
-          )}
+          </ToolbarControlSlot>
         </div>
       </div>
     </header>
+  )
+}
+
+function ToolbarControlSlot({
+  visible,
+  afterVisible = false,
+  children,
+}: {
+  visible: boolean
+  afterVisible?: boolean
+  children: ReactNode
+}) {
+  return (
+    <span
+      aria-hidden={!visible}
+      className={`grid shrink-0 origin-right place-items-center overflow-hidden transition-[width,margin,opacity,transform] duration-200 ease-out motion-reduce:transition-none ${visible ? "w-7 scale-100 opacity-100" : "pointer-events-none mr-0 w-0 scale-90 opacity-0"} ${visible && afterVisible ? "mr-0.5" : ""}`}
+    >
+      {children}
+    </span>
   )
 }
