@@ -1,4 +1,8 @@
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react"
+import {
+  useState,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react"
 import { Ellipsis, EllipsisVertical } from "lucide-react"
 
 type Panel = "explorer" | "right" | "bottom"
@@ -27,6 +31,7 @@ export function SidebarResizeHandle({
   onResize,
   onToggle,
 }: Props) {
+  const [dragging, setDragging] = useState(false)
   const horizontal = panel === "bottom"
   const increasesToward =
     panel === "explorer"
@@ -60,6 +65,20 @@ export function SidebarResizeHandle({
     }
   }
 
+  const onPointerStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setDragging(true)
+    onPointerDown(event)
+  }
+
+  const onPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    setDragging(false)
+  }
+
   return (
     <div
       role="separator"
@@ -72,19 +91,20 @@ export function SidebarResizeHandle({
       aria-valuetext={`${size} pixels`}
       title={`Drag to resize · Arrow keys to adjust${onToggle ? " · Enter to collapse" : ""}`}
       tabIndex={0}
-      onPointerDown={onPointerDown}
+      onPointerDown={onPointerStart}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={onPointerEnd}
+      onLostPointerCapture={() => setDragging(false)}
       onKeyDown={onKeyDown}
-      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-1 cursor-row-resize" : "w-1 cursor-col-resize"} before:absolute before:rounded-lg before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-1 before:-translate-y-1/2" : "before:inset-y-2 before:left-1/2 before:w-1 before:-translate-x-1/2"} hover:before:bg-primary focus-visible:before:bg-primary before:duration-200`}
+      className={`group relative z-20 flex shrink-0 touch-none justify-center outline-none ${horizontal ? "h-1 cursor-row-resize" : "w-1 cursor-col-resize"} before:absolute before:rounded-lg before:content-[''] ${horizontal ? "before:inset-x-2 before:top-1/2 before:h-1 before:-translate-y-1/2" : "before:inset-y-2 before:left-1/2 before:w-1 before:-translate-x-1/2"} ${dragging ? "before:bg-primary" : "hover:before:bg-primary focus-visible:before:bg-primary"} before:duration-200`}
     >
-        <span className="self-center text-border">
+      <span className="self-center text-border">
         {horizontal ? (
           <Ellipsis className="size-4" />
         ) : (
           <EllipsisVertical className="size-4" />
         )}
       </span>
-
-
     </div>
   )
 }
