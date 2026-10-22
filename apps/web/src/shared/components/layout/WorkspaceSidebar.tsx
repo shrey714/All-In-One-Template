@@ -101,14 +101,14 @@ export function WorkspaceSidebar({
         : "Explorer"
   const HeadingIcon =
     view === "pinned" ? Star : view === "recent" ? Clock3 : FolderTree
-  const frameClass = `flex h-full min-h-0 shrink-0 overflow-hidden ring-1 ring-inset ring-border rounded-md`
+  const frameClass = `flex h-full min-h-0 shrink-0 overflow-hidden`
   const activityRail = activityRailVisible ? (
     <ActivityRail
       view={view}
       onViewChange={onViewChange}
       onSettings={onSettings}
       onHelp={onHelp}
-      divider={sidebarVisible}
+      sidebarVisible={sidebarVisible}
     />
   ) : null
 
@@ -133,7 +133,7 @@ export function WorkspaceSidebar({
           id="workspace-sidebar"
           aria-label="Collapsed domain and tool navigation"
           style={{ width }}
-          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden border border-transparent"
+          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden border rounded-md"
         >
           <div className="grid h-[54px] w-full shrink-0 place-items-center border-b border-border">
             <FolderTree className="size-4 text-primary" />
@@ -213,7 +213,7 @@ export function WorkspaceSidebar({
         id="workspace-sidebar"
         aria-label="Domain and tool navigation"
         style={{ width }}
-        className="group/sidebar flex shrink-0 flex-col overflow-hidden border border-transparent transition-[width] duration-150"
+        className="group/sidebar flex shrink-0 flex-col overflow-hidden border rounded-md transition-[width] duration-150"
       >
         <div className="flex h-[54px] w-full shrink-0 items-center border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-2.5">
