@@ -16,6 +16,23 @@ export type ToolSettingsPanelDefinition = {
   keywords?: string[]
   component: ComponentType<ToolSettingsPanelContext>
 }
+export type ToolAvailabilityState =
+  | "preview"
+  | "coming-soon"
+  | "maintenance"
+  | "temporarily-unavailable"
+  | "configuration-required"
+  | "access-required"
+  | "disabled"
+  | "deprecated"
+  | "error"
+export type ToolAvailability = {
+  state: ToolAvailabilityState
+  message?: string
+  expectedAt?: string
+  actionLabel?: string
+  actionHref?: string
+}
 export type ToolDefinition = {
   id: string
   name: string
@@ -24,6 +41,7 @@ export type ToolDefinition = {
   href: string
   category: string
   component: ComponentType<ToolContext>
+  availability?: ToolAvailability
   panels?: {
     right?: ToolPanelDefinition
     bottom?: ToolPanelDefinition

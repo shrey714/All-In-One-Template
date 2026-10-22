@@ -15,6 +15,7 @@ import {
   usePinnedTools,
 } from "@/shared/services/pinned-tools"
 import type { ToolDefinition } from "@/shared/types/tool"
+import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 
 type WorkspaceTool = ToolDefinition & { domainId: string; domainName: string }
 
@@ -239,8 +240,11 @@ function ToolActionRow({
           <Icon className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-medium">
-            {tool.name}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate text-xs font-medium">
+              {tool.name}
+            </span>
+            <ToolAvailabilityBadge availability={tool.availability} />
           </span>
           <span className="mt-1 block truncate text-[11px] leading-4 font-normal text-muted-foreground">
             {tool.description}

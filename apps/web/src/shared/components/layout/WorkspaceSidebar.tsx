@@ -20,6 +20,7 @@ import {
 } from "@/shared/components/layout/ActivityRail"
 import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
 import type { ToolDefinition } from "@/shared/types/tool"
+import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 import {
   togglePinnedTool,
   usePinnedTools,
@@ -133,9 +134,9 @@ export function WorkspaceSidebar({
           id="workspace-sidebar"
           aria-label="Collapsed domain and tool navigation"
           style={{ width }}
-          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden border rounded-md"
+          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden rounded-md border"
         >
-          <div className="grid h-[54px] w-full shrink-0 place-items-center border-b border-border">
+          <div className="grid h-11 w-full shrink-0 place-items-center border-b border-border">
             <FolderTree className="size-4 text-primary" />
           </div>
           <nav
@@ -213,20 +214,20 @@ export function WorkspaceSidebar({
         id="workspace-sidebar"
         aria-label="Domain and tool navigation"
         style={{ width }}
-        className="group/sidebar flex shrink-0 flex-col overflow-hidden border rounded-md transition-[width] duration-150"
+        className="group/sidebar flex shrink-0 flex-col overflow-hidden rounded-md border transition-[width] duration-150"
       >
-        <div className="flex h-[54px] w-full shrink-0 items-center border-b border-border px-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <FolderTree className="size-3.5" />
+        <div className="flex h-11 w-full shrink-0 items-center border-b border-border px-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+              <FolderTree className="size-3" />
             </span>
-            <span className="truncate text-xs font-semibold tracking-wide">
-              ORBIT WORKSPACE
+            <span className="truncate text-[11px] font-semibold tracking-wide">
+              WORKSPACE
             </span>
           </div>
         </div>
 
-        <div className="flex w-full shrink-0 items-center gap-1.5 p-1.5">
+        <div className="flex w-full shrink-0 items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
           <div className="relative min-w-0 flex-1">
             <Search
               aria-hidden="true"
@@ -240,7 +241,7 @@ export function WorkspaceSidebar({
               onKeyDown={(event) => {
                 if (event.key === "Escape") setFilterQuery("")
               }}
-              className="h-8 pr-8 pl-8 text-xs rounded-sm"
+              className="h-8 rounded-md pr-8 pl-8 text-xs"
             />
             {filterQuery && (
               <Button
@@ -267,29 +268,29 @@ export function WorkspaceSidebar({
           )}
         </div>
 
-        <div className="min-h-0 w-full flex-1 overflow-y-auto px-2 pb-3">
+        <div className="min-h-0 w-full flex-1 overflow-y-auto px-2 pb-2">
           {view === "explorer" ? (
-            <nav aria-label="Domains and tools" className="space-y-1">
+            <nav aria-label="Domains and tools" className="space-y-0.5">
               {filteredDomains.map(({ domain, tools, domainMatches }) => {
                 const DomainIcon = domain.icon
                 const isCollapsed =
                   collapsedDomains.includes(domain.id) && !query
                 return (
-                  <section key={domain.id} className="mb-4 last:mb-0">
+                  <section key={domain.id} className="mb-2 last:mb-0">
                     <div className="flex items-center gap-1">
                       <NavLink
                         to={`/domains/${domain.id}`}
                         end
                         className={({ isActive }) =>
-                          `group flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors ${isActive ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`
+                          `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
                         }
                       >
-                        <DomainIcon className="size-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">
+                        <DomainIcon className="size-3.5 shrink-0 transition-colors group-hover:text-primary group-[.active]:text-primary" />
+                        <span className="min-w-0 flex-1 truncate underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-current group-[.active]:font-semibold group-[.active]:underline group-[.active]:decoration-current">
                           {domain.name}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {domain.tools.length || "—"}
+                        <span className="text-[9px] text-muted-foreground tabular-nums">
+                          {tools.length || "—"}
                         </span>
                       </NavLink>
                       <Button
@@ -298,7 +299,7 @@ export function WorkspaceSidebar({
                         aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${domain.name}`}
                         aria-expanded={!isCollapsed}
                         onClick={() => toggleDomain(domain.id)}
-                        className="h-7 w-7 shrink-0 text-muted-foreground"
+                        className="h-6 w-6 shrink-0 text-muted-foreground"
                       >
                         <ChevronDown
                           className={`size-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
@@ -306,7 +307,7 @@ export function WorkspaceSidebar({
                       </Button>
                     </div>
                     {!isCollapsed && tools.length > 0 && (
-                      <div className="mt-1.5 space-y-1">
+                      <div className="mt-0.5 ml-2 space-y-0.5 border-l border-border/70 pl-1">
                         {tools.map((tool) => (
                           <ToolRow
                             key={tool.id}
@@ -421,11 +422,14 @@ function ToolRow({
       <NavLink
         to={tool.href}
         className={({ isActive }) =>
-          `ml-3 flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border-l pr-2 pl-3 text-xs transition-colors ${isActive ? "border-primary bg-primary/8 font-medium text-primary" : "border-border text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted hover:text-foreground"}`
+          `ml-2 flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-[11px] transition-colors ${isActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
         }
       >
         <Icon className="size-3.5 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{tool.name}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate">{tool.name}</span>
+          <ToolAvailabilityBadge availability={tool.availability} />
+        </span>
         {detail && (
           <span className="shrink-0 text-[10px] text-muted-foreground">
             {detail}
@@ -445,7 +449,7 @@ function ToolRow({
             href: tool.href,
           })
         }
-        className={`h-7 w-7 shrink-0 ${pinned ? "text-amber-500" : "text-muted-foreground"}`}
+        className={`h-6 w-6 shrink-0 transition-opacity ${pinned ? "text-amber-500" : "text-muted-foreground opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"}`}
       >
         <Star className={`size-3.5 ${pinned ? "fill-current" : ""}`} />
       </Button>
