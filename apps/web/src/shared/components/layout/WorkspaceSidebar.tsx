@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { NavLink } from "react-router-dom"
 import {
-  Check,
   ChevronDown,
   ChevronsDown,
   ChevronsLeft,
@@ -196,50 +195,24 @@ export function WorkspaceSidebar({
           style={{ width }}
           className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden rounded-md border"
         >
-          <div className="flex h-10 w-full shrink-0 items-center justify-center gap-0.5 border-b border-border">
+          <div className="flex p-1 w-full shrink-0 items-center justify-center">
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
-              title="Search tools · expand sidebar"
-              aria-label="Search tools"
-              onClick={openSearch}
-              className="size-5 p-0"
+              title="Expand Explorer sidebar · ⌘B"
+              aria-label="Expand Explorer sidebar · ⌘B"
+              onClick={onToggle}
+              className="size-8 text-muted-foreground transition-colors group-hover/sidebar:text-foreground"
             >
-              <Search className="size-3.5" />
+              <ChevronsRight className="size-4" />
             </Button>
-            {view === "explorer" && (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Expand all domains"
-                  aria-label="Expand all domains"
-                  onClick={expandAllDomains}
-                  className="size-5 p-0"
-                >
-                  <ChevronsDown className="size-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  title="Collapse all domains"
-                  aria-label="Collapse all domains"
-                  onClick={collapseAllDomains}
-                  className="size-5 p-0"
-                >
-                  <ChevronsUp className="size-3.5" />
-                </Button>
-              </>
-            )}
           </div>
           <div className="relative flex min-h-0 w-full flex-1">
             <nav
               ref={scrollAreaRef}
               aria-label={heading}
-              className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-2 py-2"
+              className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-1.5 pb-1.5"
             >
               {view === "explorer"
                 ? domains.map((domain) => {
@@ -252,7 +225,7 @@ export function WorkspaceSidebar({
                       <section
                         key={domain.id}
                         aria-label={`${domain.name} tools`}
-                        className="flex w-full shrink-0 flex-col items-center gap-1 rounded-lg border border-border/80 bg-muted/20 p-1"
+                        className="flex w-full shrink-0 flex-col items-center gap-1 rounded-sm border border-border/80 bg-muted/20 p-1"
                       >
                         <NavLink
                           to={`/domains/${domain.id}`}
@@ -322,18 +295,6 @@ export function WorkspaceSidebar({
               />
             )}
           </div>
-          <div className="flex w-full justify-center border-t border-border py-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Expand sidebar · ⌘B"
-              aria-label="Expand sidebar · ⌘B"
-              onClick={onToggle}
-              className="opacity-0 transition-opacity group-focus-within/sidebar:opacity-100 group-hover/sidebar:opacity-100"
-            >
-              <ChevronsRight />
-            </Button>
-          </div>
         </aside>
       </div>
     )
@@ -368,7 +329,7 @@ export function WorkspaceSidebar({
         style={{ width }}
         className="group/sidebar flex shrink-0 flex-col overflow-hidden rounded-md border transition-[width] duration-150"
       >
-        <div className="flex w-full shrink-0 items-center gap-1 justify-end px-1 py-1">
+        <div className="flex w-full shrink-0 items-center justify-end gap-1 px-1 py-1">
           <div
             className={`group/search relative flex h-8 min-w-8 items-center rounded-md transition-[flex,width] duration-200 ${searchExpanded || filterQuery ? "flex-1" : "w-8"}`}
             onMouseEnter={() => setSearchExpanded(true)}
@@ -469,6 +430,17 @@ export function WorkspaceSidebar({
               <Trash2 className="size-3.5" />
             </Button>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            title="Collapse Explorer sidebar · ⌘B"
+            aria-label="Collapse Explorer sidebar · ⌘B"
+            onClick={onToggle}
+            className="size-7 shrink-0 text-muted-foreground transition-colors group-hover/sidebar:text-foreground"
+          >
+            <ChevronsLeft className="size-3.5" />
+          </Button>
         </div>
 
         <div className="relative min-h-0 w-full flex-1">
@@ -489,7 +461,7 @@ export function WorkspaceSidebar({
                           to={`/domains/${domain.id}`}
                           end
                           className={({ isActive }) =>
-                            `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
+                            `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md pl-1 pr-2 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
                           }
                         >
                           <DomainIcon className="size-3.5 shrink-0 transition-colors group-hover:text-primary group-[.active]:text-primary" />
@@ -590,32 +562,6 @@ export function WorkspaceSidebar({
               showBottom={scrollEdges.bottom}
             />
           )}
-        </div>
-        <div className="flex w-full shrink-0 items-center gap-1 border-t border-border px-1 py-1">
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
-              <span className="truncate text-[11px] text-muted-foreground">
-                {view === "explorer"
-                  ? "Workspace ready"
-                  : `${view === "pinned" ? pinnedEntries.length : recentEntries.length} ${view === "pinned" ? "pinned" : "recent"}`}
-              </span>
-            </div>
-            <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
-              <Check className="size-3" />
-              Local
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            title="Collapse sidebar · ⌘B"
-            aria-label="Collapse sidebar · ⌘B"
-            onClick={onToggle}
-            className="size-7 shrink-0 text-muted-foreground transition-colors group-hover/sidebar:text-foreground"
-          >
-            <ChevronsLeft className="size-4" />
-          </Button>
         </div>
       </aside>
     </div>
