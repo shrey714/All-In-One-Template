@@ -580,13 +580,13 @@ function ScrollEdgeShadows({
       {showTop && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-0.5 z-20 h-4 bg-gradient-to-b from-background via-background/85 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-4 bg-gradient-to-b from-background via-background/85 to-transparent"
         />
       )}
       {showBottom && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -bottom-0.5 z-10 h-4 bg-gradient-to-t from-background via-background/85 to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-4 bg-gradient-to-t from-background via-background/85 to-transparent"
         />
       )}
     </>
