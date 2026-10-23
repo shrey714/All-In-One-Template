@@ -146,7 +146,7 @@ export function ToolAvailabilityPage({
         />
         <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
           <span
-            className={`grid size-14 place-items-center rounded-2xl border ${info.tone}`}
+            className={`grid size-14 place-items-center rounded-2xl border mb-2 ${info.tone}`}
           >
             <Icon className="size-6" aria-hidden="true" />
           </span>

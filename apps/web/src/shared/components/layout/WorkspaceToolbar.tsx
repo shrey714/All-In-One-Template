@@ -45,6 +45,12 @@ type Props = {
   onShowStatusBarChange: (visible: boolean) => void
   centeredContent: boolean
   onCenteredContentChange: (centered: boolean) => void
+  centerDotPattern: boolean
+  onCenterDotPatternChange: (enabled: boolean) => void
+  rightDotPattern: boolean
+  onRightDotPatternChange: (enabled: boolean) => void
+  bottomDotPattern: boolean
+  onBottomDotPatternChange: (enabled: boolean) => void
   onFocusMode: () => void
   onShowAllPanels: () => void
   onResetLayout: () => void
@@ -71,6 +77,12 @@ export function WorkspaceToolbar({
   onShowStatusBarChange,
   centeredContent,
   onCenteredContentChange,
+  centerDotPattern,
+  onCenterDotPatternChange,
+  rightDotPattern,
+  onRightDotPatternChange,
+  bottomDotPattern,
+  onBottomDotPatternChange,
   onFocusMode,
   onShowAllPanels,
   onResetLayout,
@@ -314,6 +326,12 @@ export function WorkspaceToolbar({
                 onStatusBarVisibleChange={onShowStatusBarChange}
                 centeredContent={centeredContent}
                 onCenteredContentChange={onCenteredContentChange}
+                centerDotPattern={centerDotPattern}
+                onCenterDotPatternChange={onCenterDotPatternChange}
+                rightDotPattern={rightDotPattern}
+                onRightDotPatternChange={onRightDotPatternChange}
+                bottomDotPattern={bottomDotPattern}
+                onBottomDotPatternChange={onBottomDotPatternChange}
                 onFocusMode={onFocusMode}
                 onShowAll={onShowAllPanels}
                 onResetLayout={onResetLayout}

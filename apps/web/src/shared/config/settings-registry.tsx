@@ -49,6 +49,12 @@ export type DashboardSettingsContext = {
   onBottomPanelHeightChange: (value: number) => void
   centeredContent: boolean
   onCenteredContentChange: (value: boolean) => void
+  centerDotPattern: boolean
+  onCenterDotPatternChange: (value: boolean) => void
+  rightDotPattern: boolean
+  onRightDotPatternChange: (value: boolean) => void
+  bottomDotPattern: boolean
+  onBottomDotPatternChange: (value: boolean) => void
   onFocusMode: () => void
   onShowAllPanels: () => void
   onResetLayout: () => void
@@ -293,6 +299,54 @@ const centeredContentField: SettingsFieldDefinition = {
   ),
 }
 
+const centerDotPatternField: SettingsFieldDefinition = {
+  id: "center-dot-pattern",
+  label: "Center panel dots",
+  description: "Show a subtle dotted grid behind the main workspace content.",
+  keywords: ["dots", "grid", "pattern", "center", "editor", "background"],
+  render: ({ centerDotPattern, onCenterDotPatternChange }) => (
+    <ToggleSetting
+      id="setting-center-dot-pattern"
+      label="Show dotted background in center panel"
+      description="Show a subtle dotted grid behind the main workspace content."
+      checked={centerDotPattern}
+      onChange={onCenterDotPatternChange}
+    />
+  ),
+}
+
+const rightDotPatternField: SettingsFieldDefinition = {
+  id: "right-dot-pattern",
+  label: "Right panel dots",
+  description: "Show a subtle dotted grid in the active tool's right panel.",
+  keywords: ["dots", "grid", "pattern", "right", "dock", "background"],
+  render: ({ rightDotPattern, onRightDotPatternChange }) => (
+    <ToggleSetting
+      id="setting-right-dot-pattern"
+      label="Show dotted background in right panel"
+      description="Show a subtle dotted grid in the active tool's right panel."
+      checked={rightDotPattern}
+      onChange={onRightDotPatternChange}
+    />
+  ),
+}
+
+const bottomDotPatternField: SettingsFieldDefinition = {
+  id: "bottom-dot-pattern",
+  label: "Bottom panel dots",
+  description: "Show a subtle dotted grid in the active tool's bottom panel.",
+  keywords: ["dots", "grid", "pattern", "bottom", "dock", "background"],
+  render: ({ bottomDotPattern, onBottomDotPatternChange }) => (
+    <ToggleSetting
+      id="setting-bottom-dot-pattern"
+      label="Show dotted background in bottom panel"
+      description="Show a subtle dotted grid in the active tool's bottom panel."
+      checked={bottomDotPattern}
+      onChange={onBottomDotPatternChange}
+    />
+  ),
+}
+
 const rightPanelWidthField: SettingsFieldDefinition = {
   id: "right-panel-width",
   label: "Right panel width",
@@ -408,10 +462,16 @@ export const dashboardSettingsCategories: SettingsCategoryDefinition[] = [
   {
     id: "appearance",
     label: "Appearance",
-    description: "Theme and density preferences.",
+    description: "Theme, density, and panel background preferences.",
     scope: "user",
     icon: Monitor,
-    fields: [themeField, compactField],
+    fields: [
+      themeField,
+      compactField,
+      centerDotPatternField,
+      rightDotPatternField,
+      bottomDotPatternField,
+    ],
   },
   {
     id: "workbench",

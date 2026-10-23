@@ -10,6 +10,10 @@ import { DomainLandingPage } from "@/app/pages/DomainLandingPage"
 import { RouteErrorBoundary } from "@/app/errors/RouteErrorBoundary"
 import { ToolErrorBoundary } from "@/app/errors/ToolErrorBoundary"
 import {
+  DashboardLoadingSkeleton,
+  ToolContentLoadingSkeleton,
+} from "@/shared/components/layout/WorkspaceLoadingSkeleton"
+import {
   ToolAvailabilityBadge,
   ToolAvailabilityPage,
   isToolBlocked,
@@ -61,14 +65,7 @@ function ToolRoute() {
         />
       ) : (
         <Suspense
-          fallback={
-            <div
-              role="status"
-              className="rounded-xl border bg-card p-6 text-sm text-muted-foreground"
-            >
-              Loading {tool.name}…
-            </div>
-          }
+          fallback={<ToolContentLoadingSkeleton toolName={tool.name} />}
         >
           <ToolErrorBoundary key={tool.id} toolName={tool.name}>
             <Tool domainId={domainId} toolId={toolId} stepId={stepId} />
@@ -102,13 +99,7 @@ const router = createBrowserRouter([
       {
         index: true,
         element: (
-          <Suspense
-            fallback={
-              <div className="p-8 text-muted-foreground">
-                Loading dashboard…
-              </div>
-            }
-          >
+          <Suspense fallback={<DashboardLoadingSkeleton />}>
             <HomePage />
           </Suspense>
         ),

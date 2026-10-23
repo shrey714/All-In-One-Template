@@ -16,6 +16,12 @@ type Props = {
   onStatusBarVisibleChange: (visible: boolean) => void
   centeredContent: boolean
   onCenteredContentChange: (centered: boolean) => void
+  centerDotPattern: boolean
+  onCenterDotPatternChange: (enabled: boolean) => void
+  rightDotPattern: boolean
+  onRightDotPatternChange: (enabled: boolean) => void
+  bottomDotPattern: boolean
+  onBottomDotPatternChange: (enabled: boolean) => void
   onFocusMode: () => void
   onShowAll: () => void
   onResetLayout: () => void
@@ -78,6 +84,31 @@ export function CustomizeLayoutMenu(props: Props) {
           checked={props.centeredContent}
           onChange={props.onCenteredContentChange}
         />
+      </div>
+
+      <p className="px-2 pt-1.5 text-[11px] font-medium tracking-wide text-muted-foreground">
+        Dotted background
+      </p>
+      <div role="group" aria-label="Dotted background panels" className="px-2">
+        <ToggleRow
+          label="Center panel"
+          checked={props.centerDotPattern}
+          onChange={props.onCenterDotPatternChange}
+        />
+        {props.rightPanelAvailable && (
+          <ToggleRow
+            label="Right panel"
+            checked={props.rightDotPattern}
+            onChange={props.onRightDotPatternChange}
+          />
+        )}
+        {props.bottomPanelAvailable && (
+          <ToggleRow
+            label="Bottom panel"
+            checked={props.bottomDotPattern}
+            onChange={props.onBottomDotPatternChange}
+          />
+        )}
       </div>
 
       <div className="my-2 h-px bg-border" />

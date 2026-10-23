@@ -71,6 +71,18 @@ export function AppShell() {
     `${appConfig.storageNamespace}.centered-content`,
     true
   )
+  const [centerDotPattern, setCenterDotPattern] = usePersistentState(
+    `${appConfig.storageNamespace}.dot-pattern.center`,
+    true
+  )
+  const [rightDotPattern, setRightDotPattern] = usePersistentState(
+    `${appConfig.storageNamespace}.dot-pattern.right`,
+    false
+  )
+  const [bottomDotPattern, setBottomDotPattern] = usePersistentState(
+    `${appConfig.storageNamespace}.dot-pattern.bottom`,
+    false
+  )
   const [toolbarPopup, setToolbarPopup] = useState<"search" | "layout" | null>(
     null
   )
@@ -241,6 +253,9 @@ export function AppShell() {
     setCompact(false)
     setShowStatusBar(true)
     setCenteredContent(true)
+    setCenterDotPattern(true)
+    setRightDotPattern(false)
+    setBottomDotPattern(false)
   }
   const enableFocusMode = () => {
     setActivityRailVisible(false)
@@ -293,6 +308,12 @@ export function AppShell() {
         onShowStatusBarChange={setShowStatusBar}
         centeredContent={centeredContent}
         onCenteredContentChange={setCenteredContent}
+        centerDotPattern={centerDotPattern}
+        onCenterDotPatternChange={setCenterDotPattern}
+        rightDotPattern={rightDotPattern}
+        onRightDotPatternChange={setRightDotPattern}
+        bottomDotPattern={bottomDotPattern}
+        onBottomDotPatternChange={setBottomDotPattern}
         onFocusMode={enableFocusMode}
         onShowAllPanels={showAllPanels}
         onResetLayout={resetLayout}
@@ -338,7 +359,7 @@ export function AppShell() {
               className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:rounded-md md:border md:border-border"
             >
               <div
-                className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"}`}
+                className={`workspace-content min-h-0 flex-1 overflow-auto ${compact ? "px-4 py-5 sm:px-5 lg:px-6" : "px-5 py-6 sm:px-6 lg:px-6"} ${centerDotPattern ? "orbit-dot-pattern" : ""}`}
               >
                 <div
                   className={
@@ -388,6 +409,7 @@ export function AppShell() {
                       }}
                       orientation="bottom"
                       onClose={() => setBottomPanelOpen(false)}
+                      showDotPattern={bottomDotPattern}
                     />
                   </div>
                 )}
@@ -433,6 +455,7 @@ export function AppShell() {
                     }}
                     orientation="right"
                     onClose={() => setRightPanelOpen(false)}
+                    showDotPattern={rightDotPattern}
                   />
                 </div>
               )}
@@ -473,6 +496,12 @@ export function AppShell() {
         onBottomPanelHeightChange={setBottomPanelHeight}
         centeredContent={centeredContent}
         onCenteredContentChange={setCenteredContent}
+        centerDotPattern={centerDotPattern}
+        onCenterDotPatternChange={setCenterDotPattern}
+        rightDotPattern={rightDotPattern}
+        onRightDotPatternChange={setRightDotPattern}
+        bottomDotPattern={bottomDotPattern}
+        onBottomDotPatternChange={setBottomDotPattern}
         onFocusMode={enableFocusMode}
         onShowAllPanels={showAllPanels}
         onResetLayout={resetLayout}

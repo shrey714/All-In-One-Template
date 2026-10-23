@@ -13,11 +13,13 @@ export function ToolDock({
   context,
   orientation,
   onClose,
+  showDotPattern,
 }: {
   panel: DockPanelConfig
   context: ToolContext
   orientation: "right" | "bottom"
   onClose: () => void
+  showDotPattern: boolean
 }) {
   const Panel = panel.component
   return (
@@ -39,7 +41,9 @@ export function ToolDock({
           <X className="size-3.5" />
         </Button>
       </header>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3">
+      <div
+        className={`min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 ${showDotPattern ? "orbit-dot-pattern" : ""}`}
+      >
         <Panel {...context} />
       </div>
     </section>
