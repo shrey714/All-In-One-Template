@@ -49,33 +49,35 @@ export function ToolInfoSheet({
       open={Boolean(tool && domain)}
       onOpenChange={(open) => !open && onClose()}
     >
-      {tool && domain && (
-        <SheetContent
-          side="right"
-          className="w-[min(92vw,560px)] max-w-none gap-0 p-0 sm:max-w-none"
-        >
-          <SheetHeader className="shrink-0 border-b px-5 py-4 pr-12">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-[.12em] text-muted-foreground uppercase">
-              <Info className="size-3.5" /> {domain.name} / {tool.category}
+      <SheetContent
+        side="right"
+        className="w-[min(92vw,560px)] max-w-none gap-0 p-0 sm:max-w-none"
+      >
+        {tool && domain && (
+          <>
+            <SheetHeader className="shrink-0 border-b px-5 py-4 pr-12">
+              <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-[.12em] text-muted-foreground uppercase">
+                <Info className="size-3.5" /> {domain.name} / {tool.category}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <SheetTitle>{tool.name}</SheetTitle>
+                <ToolAvailabilityBadge availability={tool.availability} />
+              </div>
+              <SheetDescription>{tool.description}</SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 p-0">
+              <InfoHtmlDocument
+                key={`${domain.id}:${tool.id}:${dark ? "dark" : "light"}`}
+                domainId={domain.id}
+                domainName={domain.name}
+                toolId={tool.id}
+                toolName={tool.name}
+                dark={dark}
+              />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <SheetTitle>{tool.name}</SheetTitle>
-              <ToolAvailabilityBadge availability={tool.availability} />
-            </div>
-            <SheetDescription>{tool.description}</SheetDescription>
-          </SheetHeader>
-          <div className="min-h-0 flex-1 p-0">
-            <InfoHtmlDocument
-              key={`${domain.id}:${tool.id}:${dark ? "dark" : "light"}`}
-              domainId={domain.id}
-              domainName={domain.name}
-              toolId={tool.id}
-              toolName={tool.name}
-              dark={dark}
-            />
-          </div>
-        </SheetContent>
-      )}
+          </>
+        )}
+      </SheetContent>
     </Sheet>
   )
 }

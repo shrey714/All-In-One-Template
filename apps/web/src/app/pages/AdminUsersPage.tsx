@@ -22,6 +22,7 @@ import { KeyRound, RefreshCw, ShieldCheck, UserPlus, Users } from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { requestApi } from "@/shared/services/auth-api"
 import type { ManagedUser, UserRole } from "@/shared/types/auth"
+import { notify } from "@/shared/services/notifications"
 
 const roleName = (role: UserRole) => (role === "admin" ? "Admin" : "Member")
 
@@ -112,6 +113,10 @@ export function AdminUsersPage() {
       setNotice(
         `Created ${result.user.username}. Share the temporary password using a trusted channel; Orbit will require a change at first sign-in.`
       )
+      notify.success(
+        "User provisioned",
+        `${result.user.username} can sign in after changing the temporary password.`
+      )
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Could not create user."
@@ -139,6 +144,10 @@ export function AdminUsersPage() {
         items.map((item) => (item.id === target.id ? result.user : item))
       )
       setNotice(`${target.username} is now ${roleName(role)}.`)
+      notify.success(
+        "Role updated",
+        `${target.username} is now ${roleName(role)}.`
+      )
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Could not update role."
@@ -165,6 +174,10 @@ export function AdminUsersPage() {
       )
       setNotice(
         `${target.username} ${result.user.isActive ? "activated" : "deactivated"}.`
+      )
+      notify.success(
+        result.user.isActive ? "Account activated" : "Account deactivated",
+        `${target.username} ${result.user.isActive ? "can sign in again." : "can no longer sign in."}`
       )
     } catch (failure) {
       setError(
@@ -197,6 +210,10 @@ export function AdminUsersPage() {
       setNotice(
         `Password reset for ${resetTarget.username}. They must choose a new password at next sign-in.`
       )
+      notify.success(
+        "Temporary password reset",
+        `${resetTarget.username} will be asked to choose a new password at next sign-in.`
+      )
       setResetTarget(null)
       setResetPassword("")
     } catch (failure) {
@@ -210,10 +227,18 @@ export function AdminUsersPage() {
 
   const copyTemporaryCredential = async () => {
     if (!createdCredential) return
-    await navigator.clipboard.writeText(createdCredential.password)
-    setNotice(
-      "Temporary password copied. Share it only through a trusted channel."
-    )
+    try {
+      await navigator.clipboard.writeText(createdCredential.password)
+      notify.success(
+        "Temporary password copied",
+        "Share it only through a trusted channel."
+      )
+    } catch {
+      notify.error(
+        "Could not copy password",
+        "Check clipboard permissions, then select and copy the password manually."
+      )
+    }
   }
 
   return (
@@ -233,42 +258,6 @@ export function AdminUsersPage() {
           Members can use all registered tools.
         </p>
       </header>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {notice && (
-        <Alert>
-          <AlertDescription className="space-y-2">
-            <p>{notice}</p>
-            {createdCredential && (
-              <div className="flex flex-wrap items-center gap-2">
-                <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
-                  {createdCredential.username}: {createdCredential.password}
-                </code>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void copyTemporaryCredential()}
-                >
-                  Copy temporary password
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCreatedCredential(null)}
-                >
-                  Hide
-                </Button>
-              </div>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
@@ -490,6 +479,42 @@ export function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+            {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {notice && (
+        <Alert>
+          <AlertDescription className="space-y-2">
+            <p>{notice}</p>
+            {createdCredential && (
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
+                  {createdCredential.username}: {createdCredential.password}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void copyTemporaryCredential()}
+                >
+                  Copy temporary password
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCreatedCredential(null)}
+                >
+                  Hide
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Dialog
         open={Boolean(resetTarget)}

@@ -11,26 +11,114 @@ import {
 } from "@workspace/ui/components/card"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
-import { Eye, EyeOff, KeyRound, Orbit, ShieldCheck } from "lucide-react"
+import {
+  Check,
+  Circle,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Layers3,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { ApiError } from "@/shared/services/auth-api"
+import { SystemPageFrame } from "@/shared/components/layout/SystemPageFrame"
+import { notify } from "@/shared/services/notifications"
 
-function AuthFrame({ children }: { children: ReactNode }) {
+function WorkspaceOverview() {
   return (
-    <main className="orbit-dot-pattern grid min-h-svh place-items-center bg-background px-4 py-10">
-      <div className="w-full max-w-md space-y-4">
-        <div className="flex items-center justify-center gap-2 text-sm font-semibold tracking-wide">
-          <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <Orbit className="size-4" />
-          </span>
-          ORBIT WORKSPACE
-        </div>
-        {children}
-        <p className="text-center text-xs text-muted-foreground">
-          Accounts are provisioned by an Orbit administrator.
+    <div className="max-w-xl">
+      <p className="text-[11px] font-semibold tracking-[.18em] text-primary uppercase">
+        Your team’s workspace
+      </p>
+      <h1 className="mt-4 max-w-lg text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+        A focused place for the tools behind your work.
+      </h1>
+      <p className="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
+        Move between domain-specific tools in one organized workspace, with
+        access and preferences managed in one place.
+      </p>
+      <div className="mt-7 flex flex-wrap gap-2" aria-label="Workspace domains">
+        {["Finance", "Productivity", "Health", "Developer", "Utilities"].map(
+          (domain) => (
+            <span
+              key={domain}
+              className="rounded-md border bg-card px-2.5 py-1.5 text-xs text-muted-foreground"
+            >
+              {domain}
+            </span>
+          )
+        )}
+      </div>
+      <div className="mt-9 divide-y border-y">
+        <OverviewRow
+          number="01"
+          icon={Layers3}
+          title="Organized by domain"
+          detail="Keep related tools easy to find."
+        />
+        <OverviewRow
+          number="02"
+          icon={ShieldCheck}
+          title="Managed access"
+          detail="Accounts and roles are provisioned by an admin."
+        />
+        <OverviewRow
+          number="03"
+          icon={SlidersHorizontal}
+          title="A workspace that fits"
+          detail="Keep your layout and display preferences."
+        />
+      </div>
+    </div>
+  )
+}
+
+function OverviewRow({
+  number,
+  icon: Icon,
+  title,
+  detail,
+}: {
+  number: string
+  icon: typeof Layers3
+  title: string
+  detail: string
+}) {
+  return (
+    <div className="flex items-start gap-3 py-4">
+      <span className="w-6 pt-0.5 font-mono text-[10px] text-muted-foreground">
+        {number}
+      </span>
+      <span className="grid size-8 shrink-0 place-items-center rounded-md border bg-card text-muted-foreground">
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+          {detail}
         </p>
       </div>
-    </main>
+    </div>
+  )
+}
+
+function AuthFrame({
+  children,
+  headerLabel,
+}: {
+  children: ReactNode
+  headerLabel: string
+}) {
+  return (
+    <SystemPageFrame
+      headerLabel={headerLabel}
+      aside={<WorkspaceOverview />}
+      footerNote="Accounts are provisioned by an Orbit administrator."
+    >
+      {children}
+    </SystemPageFrame>
   )
 }
 
@@ -73,12 +161,15 @@ export function LoginPage() {
   }
 
   return (
-    <AuthFrame>
-      <Card>
+    <AuthFrame headerLabel="ACCOUNT ACCESS">
+      <Card className="border-border/80 shadow-sm">
         <CardHeader>
-          <CardTitle>Sign in to Orbit</CardTitle>
+          <p className="text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
+            Member sign-in
+          </p>
+          <CardTitle className="text-xl">Welcome back</CardTitle>
           <CardDescription>
-            Use the username and password provided by your administrator.
+            Sign in with the credentials provided by your administrator.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,7 +254,13 @@ export function ChangePasswordPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [done, setDone] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const requiresChange = Boolean(user?.mustChangePassword)
+  const meetsPasswordLength = newPassword.length >= 12
+  const passwordsMatch =
+    confirmPassword.length > 0 && newPassword === confirmPassword
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -183,6 +280,7 @@ export function ChangePasswordPage() {
         newPassword
       )
       setDone(true)
+      notify.success("Password updated", "Your Orbit account is ready to use.")
       navigate("/", { replace: true })
     } catch (failure) {
       setError(
@@ -196,9 +294,12 @@ export function ChangePasswordPage() {
   }
 
   return (
-    <AuthFrame>
-      <Card>
+    <AuthFrame headerLabel="ACCOUNT SECURITY">
+      <Card className="border-border/80 shadow-sm">
         <CardHeader>
+          <p className="text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
+            {requiresChange ? "First sign-in" : "Security settings"}
+          </p>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
             {requiresChange ? "Set your password" : "Change password"}
@@ -224,44 +325,116 @@ export function ChangePasswordPage() {
             {!requiresChange && (
               <div className="space-y-2">
                 <Label htmlFor="current-password">Current password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    className="pr-10"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-1/2 right-1 -translate-y-1/2"
+                    onClick={() => setShowCurrentPassword((value) => !value)}
+                    aria-label={
+                      showCurrentPassword
+                        ? "Hide current password"
+                        : "Show current password"
+                    }
+                  >
+                    {showCurrentPassword ? <EyeOff /> : <Eye />}
+                  </Button>
+                </div>
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="new-password">New password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={128}
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use at least 12 characters.
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                  className="pr-10"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute top-1/2 right-1 -translate-y-1/2"
+                  onClick={() => setShowNewPassword((value) => !value)}
+                  aria-label={
+                    showNewPassword ? "Hide new password" : "Show new password"
+                  }
+                >
+                  {showNewPassword ? <EyeOff /> : <Eye />}
+                </Button>
+              </div>
+              <p
+                aria-live="polite"
+                className={`flex items-center gap-1.5 text-xs ${meetsPasswordLength ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
+              >
+                {meetsPasswordLength ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Circle className="size-3.5" />
+                )}
+                At least 12 characters
               </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm new password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={128}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                  className="pr-10"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute top-1/2 right-1 -translate-y-1/2"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirmation password"
+                      : "Show confirmation password"
+                  }
+                >
+                  {showConfirmPassword ? <EyeOff /> : <Eye />}
+                </Button>
+              </div>
+              {confirmPassword && (
+                <p
+                  role="status"
+                  className={`flex items-center gap-1.5 text-xs ${passwordsMatch ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
+                >
+                  {passwordsMatch ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <Circle className="size-3.5" />
+                  )}
+                  {passwordsMatch
+                    ? "Passwords match"
+                    : "Passwords do not match"}
+                </p>
+              )}
             </div>
             <Button className="w-full" type="submit" disabled={busy}>
               {busy

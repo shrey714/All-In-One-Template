@@ -1,7 +1,7 @@
 {
   "auth": {
     "enabled": true,
-    "inactivityTimeoutMinutes": 30,
+    "inactivityTimeoutMinutes": 10,
     "warningBeforeTimeoutSeconds": 60
   }
 }

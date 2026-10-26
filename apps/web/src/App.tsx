@@ -50,6 +50,12 @@ const HomePage = lazy(() =>
   }))
 )
 
+const NotFoundPage = lazy(() =>
+  import("@/app/pages/NotFoundPage").then((module) => ({
+    default: module.NotFoundPage,
+  }))
+)
+
 function DomainRoute() {
   const { domainId = "" } = useParams()
   return getDomain(domainId) ? (
@@ -96,20 +102,6 @@ function ToolRoute() {
           </ToolErrorBoundary>
         </Suspense>
       )}
-    </div>
-  )
-}
-
-function NotFound() {
-  return (
-    <div className="mx-auto max-w-xl rounded-2xl border bg-card p-10 text-center">
-      <h1 className="text-2xl font-semibold">Page not found</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        That route does not match a registered page, domain, or tool.
-      </p>
-      <a className="mt-4 inline-block text-primary underline" href="/">
-        Return to dashboard
-      </a>
     </div>
   )
 }
@@ -172,7 +164,14 @@ const router = createBrowserRouter([
           </RequireAdmin>
         ),
       },
-      { path: "not-found", element: <NotFound /> },
+      {
+        path: "not-found",
+        element: (
+          <Suspense fallback={<DashboardLoadingSkeleton />}>
+            <NotFoundPage />
+          </Suspense>
+        ),
+      },
       { path: "*", element: <Navigate to="/not-found" replace /> },
     ],
   },

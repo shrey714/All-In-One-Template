@@ -716,7 +716,7 @@ function ToolRow({
             size="icon-xs"
             title={`More actions for ${tool.name}`}
             aria-label={`More actions for ${tool.name}`}
-            className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+            className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:text-foreground data-[state=open]:opacity-100"
           >
             <MoreHorizontal className="size-3.5" />
           </Button>

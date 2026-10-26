@@ -180,6 +180,18 @@ function SheetContent({
         style={resizedStyle}
         {...props}
       >
+        {showCloseButton && (
+          <SheetPrimitive.Close data-slot="sheet-close" asChild>
+            <Button
+              variant="ghost"
+              className="absolute top-3 right-3"
+              size="icon-sm"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </Button>
+          </SheetPrimitive.Close>
+        )}
         {children}
         {resizable && (
           <div
@@ -197,12 +209,6 @@ function SheetContent({
             }
             aria-valuenow={size ?? undefined}
             tabIndex={0}
-            onFocus={() => {
-              if (size === null && panelRef.current) {
-                const rect = panelRef.current.getBoundingClientRect()
-                setSize(isHorizontalResize ? rect.width : rect.height)
-              }
-            }}
             onPointerDown={startResize}
             onPointerMove={moveResize}
             onPointerUp={stopResize}
@@ -222,18 +228,6 @@ function SheetContent({
               )}
             </span>
           </div>
-        )}
-        {showCloseButton && (
-          <SheetPrimitive.Close data-slot="sheet-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-3 right-3"
-              size="icon-sm"
-            >
-              <XIcon />
-              <span className="sr-only">Close</span>
-            </Button>
-          </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>
     </SheetPortal>
