@@ -25,31 +25,30 @@ import { useAuth } from "@/app/providers/AuthProvider"
 import { ApiError } from "@/shared/services/auth-api"
 import { SystemPageFrame } from "@/shared/components/layout/SystemPageFrame"
 import { notify } from "@/shared/services/notifications"
+import { branding } from "@/shared/config/orbit-config"
+import { domains } from "@/shared/config/registry"
 
 function WorkspaceOverview() {
   return (
     <div className="max-w-xl">
       <p className="text-[11px] font-semibold tracking-[.18em] text-primary uppercase">
-        Your team’s workspace
+        {branding.signIn.eyebrow}
       </p>
       <h1 className="mt-4 max-w-lg text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
-        A focused place for the tools behind your work.
+        {branding.signIn.headline}
       </h1>
       <p className="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
-        Move between domain-specific tools in one organized workspace, with
-        access and preferences managed in one place.
+        {branding.signIn.description}
       </p>
       <div className="mt-7 flex flex-wrap gap-2" aria-label="Workspace domains">
-        {["Finance", "Productivity", "Health", "Developer", "Utilities"].map(
-          (domain) => (
-            <span
-              key={domain}
-              className="rounded-md border bg-card px-2.5 py-1.5 text-xs text-muted-foreground"
-            >
-              {domain}
-            </span>
-          )
-        )}
+        {domains.map((domain) => (
+          <span
+            key={domain.id}
+            className="rounded-md border bg-card px-2.5 py-1.5 text-xs text-muted-foreground"
+          >
+            {domain.name}
+          </span>
+        ))}
       </div>
       <div className="mt-9 divide-y border-y">
         <OverviewRow
@@ -115,7 +114,7 @@ function AuthFrame({
     <SystemPageFrame
       headerLabel={headerLabel}
       aside={<WorkspaceOverview />}
-      footerNote="Accounts are provisioned by an Orbit administrator."
+      footerNote={branding.signIn.footerNote}
     >
       {children}
     </SystemPageFrame>
@@ -167,10 +166,8 @@ export function LoginPage() {
           <p className="text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
             Member sign-in
           </p>
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>
-            Sign in with the credentials provided by your administrator.
-          </CardDescription>
+          <CardTitle className="text-xl">{branding.signIn.formTitle}</CardTitle>
+          <CardDescription>{branding.signIn.formDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={submit}>
@@ -234,7 +231,7 @@ export function LoginPage() {
               ) : (
                 <>
                   <KeyRound className="size-4" />
-                  Sign in
+                  {branding.signIn.submitLabel}
                 </>
               )}
             </Button>
@@ -278,7 +275,10 @@ export function ChangePasswordPage() {
         requiresChange ? undefined : currentPassword,
         newPassword
       )
-      notify.success("Password updated", "Your Orbit account is ready to use.")
+      notify.success(
+        "Password updated",
+        `Your ${branding.productName} account is ready to use.`
+      )
       navigate("/", { replace: true })
     } catch (failure) {
       setError(

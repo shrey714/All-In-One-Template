@@ -81,7 +81,7 @@ export type SettingsCategoryDefinition = {
 const themeField: SettingsFieldDefinition = {
   id: "color-theme",
   label: "Color theme",
-  description: "Choose the color scheme used across the Orbit workspace.",
+  description: "Choose the color scheme used across the workspace.",
   keywords: ["light", "dark", "system", "appearance"],
   render: ({ theme, setTheme }) => (
     <SettingRow

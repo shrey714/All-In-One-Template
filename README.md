@@ -43,6 +43,14 @@ npm run typecheck
 npm run build --workspace=web
 ```
 
+## White-label branding
+
+Set deployment branding in the repository-root `orbit.config.json` under `branding`. The configuration controls the short and full product names, tagline, sign-in overview and form copy, support URL/label, and separate light/dark primary and foreground colors. These values preserve Orbit's current appearance by default and are injected into document metadata and theme tokens before the app renders.
+
+Place custom logo and favicon files in `apps/web/public/` (for example, `apps/web/public/brand/logo.svg`) and use their root-relative paths in `branding.logoPath` and `branding.faviconPath` (for example, `/brand/logo.svg`). The configured asset must exist in the public folder and use SVG, PNG, WebP, or ICO. Support links may be HTTPS URLs or `mailto:` links. Brand colors must be six-digit hex values; Vite rejects a light/dark button foreground with less than 4.5:1 contrast against its primary color.
+
+Brand configuration is build-time frontend configuration: restart the Vite dev server after edits and rebuild the web app for production. Keep the config file and brand assets with the deployment; avoid remote logo URLs so the existing same-origin Content Security Policy remains effective.
+
 ## Workspace experience
 
 - Floating, VS Code-inspired work surface with distinct activity rail, explorer, draggable divider, toolbar, content pane, and status bar.
@@ -56,6 +64,8 @@ npm run build --workspace=web
 - Responsive shell: on narrow viewports, open the command palette to navigate without the desktop explorer.
 
 ## Source layout
+
+See [the preference and data scope contract](docs/architecture/preference-and-data-scopes.md) before adding persisted settings or tool data. It defines deployment, workspace, user, domain, tool, and session ownership and documents which existing preferences remain browser-local.
 
 ```text
 apps/web/

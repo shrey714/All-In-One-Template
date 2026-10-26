@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowLeft, Compass, Home } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
+import { branding } from "@/shared/config/orbit-config"
 
 export function NotFoundPage() {
   return (
@@ -8,7 +9,7 @@ export function NotFoundPage() {
       <section className="w-full rounded-xl border bg-card p-7 shadow-sm sm:p-9">
         <div className="flex items-center justify-between gap-4">
           <span className="text-[10px] font-semibold tracking-[.16em] text-muted-foreground uppercase">
-            Orbit / Route lookup
+            {branding.shortName} / Route lookup
           </span>
           <span className="font-mono text-xs text-muted-foreground">404</span>
         </div>

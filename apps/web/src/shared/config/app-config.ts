@@ -1,6 +1,8 @@
+import { branding } from "@/shared/config/orbit-config"
+
 export const appConfig = {
-  name: "Orbit",
-  productName: "Orbit Workspace",
+  name: branding.shortName,
+  productName: branding.productName,
   defaultSidebarWidth: 286,
   minSidebarWidth: 224,
   maxSidebarWidth: 440,

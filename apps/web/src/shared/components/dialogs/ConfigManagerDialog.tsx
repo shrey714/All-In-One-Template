@@ -21,6 +21,7 @@ import type {
   ToolSettingsPanelContext,
   ToolSettingsPanelDefinition,
 } from "@/shared/types/tool"
+import { branding } from "@/shared/config/orbit-config"
 
 const scopeLabels: Record<SettingsScope, string> = {
   user: "User",
@@ -167,8 +168,8 @@ export function ConfigManagerDialog({
             )}
           </div>
           <DialogDescription className="sr-only">
-            Search and customize Orbit dashboard preferences and settings for
-            all registered tools.
+            Search and customize {branding.productName} preferences and settings
+            for all registered tools.
           </DialogDescription>
         </DialogHeader>
 

@@ -23,6 +23,7 @@ import { getTool, getDomain } from "@/shared/config/registry"
 import { CustomizeLayoutMenu } from "@/shared/components/layout/CustomizeLayoutMenu"
 import { CommandSearchContent } from "@/shared/components/dialogs/CommandSearchContent"
 import { AccountMenu } from "@/shared/components/layout/AccountMenu"
+import { branding } from "@/shared/config/orbit-config"
 
 type Props = {
   floatingPanel: "search" | "layout" | null
@@ -152,7 +153,7 @@ export function WorkspaceToolbar({
       <>
         <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,min(460px,calc(100vw-160px)))_minmax(0,1fr)] items-center gap-2 px-3 pb-1 sm:pl-5">
           <div className="hidden min-w-0 items-center gap-2 text-xs lg:flex">
-            <span className="text-muted-foreground">Orbit</span>
+            <span className="text-muted-foreground">{branding.shortName}</span>
             <span className="text-muted-foreground/50">/</span>
             <span className="truncate font-medium">{crumb}</span>
             <span className="hidden rounded border px-1.5 py-0.5 text-[9px] tracking-wider text-muted-foreground uppercase xl:inline">

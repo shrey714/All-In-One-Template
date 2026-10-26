@@ -94,7 +94,7 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
     auth: { enabled: boolean; inactivityTimeoutMinutes: number }
   }
   assert.equal(runtimeSettings.auth.enabled, true)
-  assert.equal(runtimeSettings.auth.inactivityTimeoutMinutes, 30)
+  assert.equal(runtimeSettings.auth.inactivityTimeoutMinutes, 10)
 
   const anonymous = await call("/api/auth/me")
   assert.equal(anonymous.status, 401)

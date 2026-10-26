@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { Moon, Orbit, Sun } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "@/app/providers"
+import { BrandMark } from "@/shared/components/layout/BrandMark"
+import { branding } from "@/shared/config/orbit-config"
 
 type SystemPageFrameProps = {
   children: ReactNode
@@ -15,7 +17,7 @@ export function SystemPageFrame({
   children,
   aside,
   headerLabel,
-  footerNote = "Orbit Workspace · Managed by your workspace administrator",
+  footerNote = `${branding.productName} · Managed by your workspace administrator`,
 }: SystemPageFrameProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
@@ -27,14 +29,12 @@ export function SystemPageFrame({
           <Link
             to="/"
             className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="Orbit Workspace home"
+            aria-label={`${branding.productName} home`}
           >
-            <span className="grid size-9 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-              <Orbit className="size-[18px]" strokeWidth={2.2} />
-            </span>
+            <BrandMark />
             <span className="leading-none">
               <span className="block text-[12px] font-semibold tracking-[.18em]">
-                ORBIT
+                {branding.shortName.toUpperCase()}
               </span>
               <span className="mt-1 block text-[10px] tracking-[.12em] text-muted-foreground uppercase">
                 Workspace
@@ -71,7 +71,7 @@ export function SystemPageFrame({
         {aside && (
           <aside
             className="hidden min-w-0 lg:block"
-            aria-label="About Orbit Workspace"
+            aria-label={`About ${branding.productName}`}
           >
             {aside}
           </aside>
@@ -85,8 +85,28 @@ export function SystemPageFrame({
 
       <footer className="border-t border-border/70">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-2 px-5 py-3 text-[11px] text-muted-foreground sm:px-8">
-          <span>ORBIT WORKSPACE</span>
-          <span>{footerNote}</span>
+          <span>{branding.productName.toUpperCase()}</span>
+          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-right">
+            <span>{footerNote}</span>
+            {branding.supportUrl && (
+              <a
+                href={branding.supportUrl}
+                target={
+                  branding.supportUrl.startsWith("https://")
+                    ? "_blank"
+                    : undefined
+                }
+                rel={
+                  branding.supportUrl.startsWith("https://")
+                    ? "noreferrer"
+                    : undefined
+                }
+                className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                {branding.supportLabel}
+              </a>
+            )}
+          </div>
         </div>
       </footer>
     </main>

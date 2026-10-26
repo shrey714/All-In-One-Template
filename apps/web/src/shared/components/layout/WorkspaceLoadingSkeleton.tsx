@@ -1,5 +1,6 @@
 import { Skeleton } from "@workspace/ui/components/skeleton"
-import { Orbit } from "lucide-react"
+import { BrandMark } from "@/shared/components/layout/BrandMark"
+import { branding } from "@/shared/config/orbit-config"
 
 export function DashboardLoadingSkeleton() {
   return (
@@ -92,20 +93,18 @@ export function SystemPageLoadingSkeleton() {
   return (
     <main
       role="status"
-      aria-label="Loading Orbit system page"
+      aria-label={`Loading ${branding.productName} system page`}
       aria-busy="true"
       className="flex min-h-svh flex-col bg-background text-foreground"
     >
-      <span className="sr-only">Loading Orbit Workspace…</span>
+      <span className="sr-only">Loading {branding.productName}…</span>
       <header className="border-b border-border/70">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="grid size-9 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-              <Orbit className="size-[18px]" strokeWidth={2.2} />
-            </span>
+            <BrandMark />
             <span className="leading-none">
               <span className="block text-[12px] font-semibold tracking-[.18em]">
-                ORBIT
+                {branding.shortName.toUpperCase()}
               </span>
               <span className="mt-1 block text-[10px] tracking-[.12em] text-muted-foreground uppercase">
                 Workspace
@@ -170,7 +169,7 @@ export function SystemPageLoadingSkeleton() {
 
       <footer className="border-t border-border/70">
         <div className="mx-auto flex w-full max-w-7xl justify-between gap-3 px-5 py-3 text-[11px] text-muted-foreground sm:px-8">
-          <span>ORBIT WORKSPACE</span>
+          <span>{branding.productName.toUpperCase()}</span>
           <Skeleton className="h-3 w-56 max-w-[55%]" aria-hidden="true" />
         </div>
       </footer>

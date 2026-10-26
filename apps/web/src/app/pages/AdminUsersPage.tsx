@@ -23,6 +23,7 @@ import { useAuth } from "@/app/providers/AuthProvider"
 import { requestApi } from "@/shared/services/auth-api"
 import type { ManagedUser, UserRole } from "@/shared/types/auth"
 import { notify } from "@/shared/services/notifications"
+import { branding } from "@/shared/config/orbit-config"
 
 const roleName = (role: UserRole) => (role === "admin" ? "Admin" : "Member")
 
@@ -111,7 +112,7 @@ export function AdminUsersPage() {
       setTemporaryPassword("")
       setNewRole("member")
       setNotice(
-        `Created ${result.user.username}. Share the temporary password using a trusted channel; Orbit will require a change at first sign-in.`
+        `Created ${result.user.username}. Share the temporary password using a trusted channel; ${branding.shortName} will require a change at first sign-in.`
       )
       notify.success(
         "User provisioned",
@@ -268,7 +269,7 @@ export function AdminUsersPage() {
             </CardTitle>
             <CardDescription>
               There is no public sign-up. New accounts receive a temporary
-              password and must change it before using Orbit.
+              password and must change it before using {branding.shortName}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -480,7 +481,7 @@ export function AdminUsersPage() {
         </Card>
       </div>
 
-            {error && (
+      {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>

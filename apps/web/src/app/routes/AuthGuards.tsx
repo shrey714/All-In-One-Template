@@ -11,6 +11,7 @@ import {
 import { ArrowLeft, LoaderCircle, RotateCw, ShieldAlert } from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { SystemPageLoadingSkeleton } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
+import { branding } from "@/shared/config/orbit-config"
 const SystemPageFrame = lazy(() =>
   import("@/shared/components/layout/SystemPageFrame").then((module) => ({
     default: module.SystemPageFrame,
@@ -18,7 +19,7 @@ const SystemPageFrame = lazy(() =>
 )
 
 function AuthProgress({
-  message = "Checking your Orbit session…",
+  message = `Checking your ${branding.shortName} session…`,
 }: {
   message?: string
 }) {
@@ -63,7 +64,7 @@ function BackendUnavailable() {
               <ShieldAlert className="size-5" />
             </span>
             <CardTitle className="pt-1 text-xl">
-              Can’t reach Orbit sign-in
+              Can’t reach {branding.shortName} sign-in
             </CardTitle>
             <CardDescription>
               The authentication service did not respond. Check that the

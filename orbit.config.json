@@ -3,5 +3,33 @@
     "enabled": true,
     "inactivityTimeoutMinutes": 10,
     "warningBeforeTimeoutSeconds": 60
+  },
+  "branding": {
+    "shortName": "Orbit",
+    "productName": "Orbit Workspace",
+    "tagline": "A focused, multi-domain workspace for everyday tools.",
+    "logoPath": "/orbit-mark.svg",
+    "faviconPath": "/orbit-mark.svg",
+    "supportUrl": "",
+    "supportLabel": "Contact your administrator",
+    "signIn": {
+      "eyebrow": "Your team’s workspace",
+      "headline": "A focused place for the tools behind your work.",
+      "description": "Move between domain-specific tools in one organized workspace, with access and preferences managed in one place.",
+      "formTitle": "Welcome back",
+      "formDescription": "Sign in with the credentials provided by your administrator.",
+      "submitLabel": "Sign in",
+      "footerNote": "Accounts are provisioned by a workspace administrator."
+    },
+    "colors": {
+      "light": {
+        "primary": "#6256E8",
+        "primaryForeground": "#FFFFFF"
+      },
+      "dark": {
+        "primary": "#A39BFF",
+        "primaryForeground": "#19162E"
+      }
+    }
   }
 }

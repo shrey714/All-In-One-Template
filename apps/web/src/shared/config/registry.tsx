@@ -139,7 +139,7 @@ const plannedTool = (
   availability:
     availability ??
     plannedPosterOverrides[id] ??
-    plannedAvailability(`${name} is planned for a future Orbit release.`),
+    plannedAvailability(`${name} is planned for a future release.`),
 })
 
 const registeredTools: Record<string, ToolDefinition[]> = {
@@ -186,7 +186,7 @@ const registeredTools: Record<string, ToolDefinition[]> = {
       category: "Calculators",
       component: ComingSoonTool,
       availability: plannedAvailability(
-        "This calculator is planned for a future Orbit release."
+        "This calculator is planned for a future release."
       ),
     },
   ],
@@ -219,7 +219,7 @@ const registeredTools: Record<string, ToolDefinition[]> = {
       category: "Writing",
       component: ComingSoonTool,
       availability: plannedAvailability(
-        "This writing tool is planned for a future Orbit release."
+        "This writing tool is planned for a future release."
       ),
     },
   ],
@@ -275,7 +275,7 @@ const registeredTools: Record<string, ToolDefinition[]> = {
       category: "API tools",
       component: ComingSoonTool,
       availability: plannedAvailability(
-        "This API tool is planned for a future Orbit release."
+        "This API tool is planned for a future release."
       ),
     },
   ],

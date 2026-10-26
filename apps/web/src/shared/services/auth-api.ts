@@ -1,3 +1,5 @@
+import { branding } from "@/shared/config/orbit-config"
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -28,7 +30,7 @@ export async function requestApi<T>(
     })
   } catch {
     throw new ApiError(
-      "Orbit's authentication backend is not reachable. Start the backend and try again.",
+      `${branding.shortName}'s authentication service is not reachable. Start the backend and try again.`,
       0
     )
   }

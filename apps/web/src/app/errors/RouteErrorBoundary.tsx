@@ -3,6 +3,7 @@ import { isRouteErrorResponse, Link, useRouteError } from "react-router-dom"
 import { Button } from "@workspace/ui/components/button"
 import { AlertTriangle, ArrowLeft, Home, RotateCw } from "lucide-react"
 import { SystemPageLoadingSkeleton } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
+import { branding } from "@/shared/config/orbit-config"
 
 const SystemPageFrame = lazy(() =>
   import("@/shared/components/layout/SystemPageFrame").then((module) => ({
@@ -22,7 +23,7 @@ export function RouteErrorBoundary() {
     <Suspense fallback={<SystemPageLoadingSkeleton />}>
       <SystemPageFrame
         headerLabel="WORKSPACE STATUS"
-        footerNote="If the problem persists, contact your Orbit administrator."
+        footerNote={`If the problem persists, contact your ${branding.shortName} administrator.`}
       >
         <section className="rounded-xl border bg-card p-7 shadow-sm sm:p-8">
           <span className="grid size-10 place-items-center rounded-lg border border-destructive/20 bg-destructive/5 text-destructive">
