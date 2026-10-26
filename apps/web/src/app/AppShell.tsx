@@ -287,6 +287,7 @@ export function AppShell() {
         floatingPanel={toolbarPopup}
         onFloatingPanelChange={setToolbarPopup}
         onOpenSettings={openSettings}
+        showAccountMenu={!activityRailVisible}
         onToggleSidebar={() => {
           if (sidebarVisible) toggleSidebar()
           else setSidebarVisible(true)

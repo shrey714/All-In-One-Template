@@ -5,12 +5,13 @@ import {
   FolderTree,
   HelpCircle,
   Moon,
+  Pin,
   Settings2,
-  Star,
   Sun,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "@/app/providers"
+import { AccountMenu } from "@/shared/components/layout/AccountMenu"
 import type { SidebarView } from "@/shared/types/workspace"
 
 export type { SidebarView } from "@/shared/types/workspace"
@@ -24,7 +25,7 @@ type Props = {
 
 const views = [
   { id: "explorer", label: "Explorer", icon: FolderTree },
-  { id: "pinned", label: "Pinned tools", icon: Star },
+  { id: "pinned", label: "Pinned tools", icon: Pin },
   { id: "recent", label: "Recent tools", icon: Clock3 },
 ] as const
 
@@ -33,7 +34,7 @@ export function ActivityRail({
   onViewChange,
   onSettings,
   onHelp,
-  sidebarVisible
+  sidebarVisible,
 }: Props) {
   const { theme, setTheme } = useTheme()
   const ThemeIcon = theme === "dark" ? Sun : Moon
@@ -41,13 +42,13 @@ export function ActivityRail({
   return (
     <nav
       aria-label="Workspace views"
-      className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden py-3 ${sidebarVisible ? 'mr-1' : ''}`}
+      className={`flex h-full w-12 shrink-0 flex-col items-center overflow-hidden py-3 ${sidebarVisible ? "mr-1" : ""}`}
     >
       <Link
         aria-label="Go to dashboard"
         title="Dashboard"
         to="/"
-        className={`mb-5 grid size-9 place-items-center rounded-xl transition-colors bg-primary text-primary-foreground shadow-sm`}
+        className={`mb-5 grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-colors`}
         onClick={() => onViewChange("explorer")}
       >
         <Command className="size-4" />
@@ -101,13 +102,7 @@ export function ActivityRail({
         >
           <Settings2 className="size-4" />
         </Button>
-        <span
-          className="mt-1 grid size-7 place-items-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200"
-          title="Pakhi Srivastava"
-          aria-label="Profile: Pakhi Srivastava"
-        >
-          PS
-        </span>
+        <AccountMenu className="mt-1" />
       </div>
     </nav>
   )

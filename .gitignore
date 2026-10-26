@@ -31,3 +31,6 @@ dist-ssr
 
 # typescript
 *.tsbuildinfo
+
+# Local Orbit backend database and SQLite journal files
+backend/data/

@@ -6,7 +6,35 @@ Orbit is a React dashboard built on the existing **Vite + React Router + Tailwin
 
 ```bash
 npm install
+```
+
+Orbit authentication is an API-only service in the top-level `backend/` directory. It is not an npm workspace under `apps/`, has its own package and lockfile, and neither imports nor serves the frontend. During development, Vite proxies `/api` to it. In two terminals, install/start the backend and frontend separately:
+
+```bash
+npm install --prefix backend --workspaces=false
+npm run dev --prefix backend
+```
+
+```bash
 npm run dev --workspace=web
+```
+
+For backend validation, run `npm run lint --prefix backend`, `npm run typecheck --prefix backend`, and `npm test --prefix backend` separately; the backend is intentionally not included in the frontend Turbo workspace.
+
+Create the first administrator once from an interactive terminal. The password is entered masked and is not passed on the command line:
+
+```bash
+npm run bootstrap:admin --prefix backend
+```
+
+There is no public signup endpoint. Admins provision Member/Admin accounts from **Account → Manage users**; new users must change their temporary password at first sign-in. SQLite data is stored under `backend/data/` and ignored by Git. For production, build the two projects separately. Host the frontend and API behind a same-origin reverse proxy that forwards `/api` to the backend; set `ORBIT_WEB_ORIGIN` to the public HTTPS origin so the API validates browser write requests and marks session cookies secure:
+
+Global authentication behavior is configured in the repository-root `orbit.config.json`. Set `auth.enabled` to `false` to allow dashboard access without sign-in; this makes the workspace available to anyone who can reach it, so use that only on a trusted/private network. Set `auth.inactivityTimeoutMinutes` to the desired idle duration (or `0` to disable idle expiry while leaving authentication enabled). `auth.warningBeforeTimeoutSeconds` controls how early the “Still there?” popup appears. Frontend config is embedded at Vite startup/build and backend config is read at backend startup, so restart Vite and the backend after changing these values. Keep the frontend and backend on the same root config for consistent behavior.
+
+```bash
+npm run build --workspace=web
+npm run build --prefix backend
+NODE_ENV=production ORBIT_WEB_ORIGIN=https://orbit.example.com npm start --prefix backend
 ```
 
 ```bash
@@ -22,7 +50,8 @@ npm run build --workspace=web
 - Collapse the sidebar to icon-only navigation for the currently selected view; the sidebar width, view, and collapsed state persist locally.
 - Light, dark, and system themes; compact layout and status-bar controls; settings persist locally.
 - One global search/command palette in the toolbar (`⌘K` / `Ctrl+K`); the sidebar filter is intentionally scoped to its selected view. Shortcut help (`?`), sidebar toggle (`⌘B` / `Ctrl+B`), and settings (`⌘,` / `Ctrl+,`) each have a single primary control.
-- Pin tools with a star to save them locally; pinned tools appear on the overview and in the Pinned view. Recently opened tools are kept in the Recent view, which can be cleared locally.
+- Use each Explorer tool’s three-dot menu to favorite it or pin/unpin it. Favorites use a star and a small yellow dot beside the tool name; active-route styling is independent. Up to five pinned tools are shown in a compact Explorer quick-access group and in the Pinned view. Recently opened tools are kept in the Recent view, which can be cleared locally.
+- Choose **Info** from a tool’s three-dot menu to open its right-side detail sheet, combining domain and tool documentation. Add `info.html` under the domain folder and under each tool folder; these local HTML fragments are loaded on demand and rendered in a sandboxed iframe without script execution.
 - Search and route links support direct deep links.
 - Responsive shell: on narrow viewports, open the command palette to navigate without the desktop explorer.
 
@@ -67,6 +96,11 @@ packages/ui/
 ├── src/hooks/                         # UI-package hooks
 ├── src/lib/                           # UI-package utilities
 └── src/styles/globals.css             # Shared Tailwind v4 tokens and theme
+
+backend/                                # Standalone Node API + SQLite auth store
+├── src/                                # Sessions, password hashing, RBAC and routes
+├── data/                               # Local SQLite database (git-ignored)
+└── package.json                        # Independent package manifest and lockfile
 ```
 
 **Ownership rule:** keep behavior local to its domain or tool. Promote it to `shared/` only when multiple domains need it. For reusable visual primitives, use `packages/ui` so Shadcn’s monorepo-aware CLI can manage them.
@@ -82,6 +116,9 @@ The Health domain shows the intended empty-domain experience without shipping pl
 
 ## Routes and shareable state
 
+- `/login` — username/password sign-in; there is no public account creation route
+- `/change-password` — first-login temporary-password change and voluntary password updates
+- `/admin/users` — Admin-only account provisioning, role management and deactivation
 - `/` — workspace overview
 - `/domains/:domainId` — domain landing page, including a useful empty state
 - `/domains/:domainId/tools/:toolId` — tool page

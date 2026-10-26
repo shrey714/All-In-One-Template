@@ -19,6 +19,30 @@ import {
   isToolBlocked,
 } from "@/shared/components/tools/ToolAvailability"
 import { getDomain, getTool } from "@/shared/config/registry"
+import { AuthProvider } from "@/app/providers/AuthProvider"
+import {
+  LoginRedirect,
+  RequireAdmin,
+  RequireAuth,
+  RequireSignedIn,
+} from "@/app/routes/AuthGuards"
+const AdminUsersPage = lazy(() =>
+  import("@/app/pages/AdminUsersPage").then((module) => ({
+    default: module.AdminUsersPage,
+  }))
+)
+
+const LoginPage = lazy(() =>
+  import("@/app/pages/AuthPages").then((module) => ({
+    default: module.LoginPage,
+  }))
+)
+
+const ChangePasswordPage = lazy(() =>
+  import("@/app/pages/AuthPages").then((module) => ({
+    default: module.ChangePasswordPage,
+  }))
+)
 
 const HomePage = lazy(() =>
   import("@/app/pages/HomePage").then((module) => ({
@@ -92,8 +116,32 @@ function NotFound() {
 
 const router = createBrowserRouter([
   {
+    path: "/login",
+    element: (
+      <LoginRedirect>
+        <Suspense fallback={<DashboardLoadingSkeleton />}>
+          <LoginPage />
+        </Suspense>
+      </LoginRedirect>
+    ),
+  },
+  {
+    path: "/change-password",
+    element: (
+      <RequireSignedIn>
+        <Suspense fallback={<DashboardLoadingSkeleton />}>
+          <ChangePasswordPage />
+        </Suspense>
+      </RequireSignedIn>
+    ),
+  },
+  {
     path: "/",
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     errorElement: <RouteErrorBoundary />,
     children: [
       {
@@ -110,6 +158,20 @@ const router = createBrowserRouter([
         path: "domains/:domainId/tools/:toolId/steps/:stepId",
         element: <ToolRoute />,
       },
+      {
+        path: "admin/users",
+        element: (
+          <RequireAdmin>
+            <Suspense
+              fallback={
+                <ToolContentLoadingSkeleton toolName="User management" />
+              }
+            >
+              <AdminUsersPage />
+            </Suspense>
+          </RequireAdmin>
+        ),
+      },
       { path: "not-found", element: <NotFound /> },
       { path: "*", element: <Navigate to="/not-found" replace /> },
     ],
@@ -117,5 +179,9 @@ const router = createBrowserRouter([
 ])
 
 export function App() {
-  return <RouterProvider router={router} />
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  )
 }

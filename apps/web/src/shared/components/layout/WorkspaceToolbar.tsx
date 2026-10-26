@@ -22,11 +22,13 @@ import {
 import { getTool, getDomain } from "@/shared/config/registry"
 import { CustomizeLayoutMenu } from "@/shared/components/layout/CustomizeLayoutMenu"
 import { CommandSearchContent } from "@/shared/components/dialogs/CommandSearchContent"
+import { AccountMenu } from "@/shared/components/layout/AccountMenu"
 
 type Props = {
   floatingPanel: "search" | "layout" | null
   onFloatingPanelChange: (panel: "search" | "layout" | null) => void
   onOpenSettings: () => void
+  showAccountMenu: boolean
   onToggleSidebar: () => void
   sidebarVisible: boolean
   sidebarCollapsed: boolean
@@ -59,6 +61,7 @@ export function WorkspaceToolbar({
   floatingPanel,
   onFloatingPanelChange,
   onOpenSettings,
+  showAccountMenu,
   onToggleSidebar,
   sidebarVisible,
   sidebarCollapsed,
@@ -295,6 +298,9 @@ export function WorkspaceToolbar({
                   )}
                 </Button>
               </ToolbarControlSlot>
+              <AccountMenu
+                className={showAccountMenu ? "ml-1" : "ml-1 md:hidden"}
+              />
             </div>
           </div>
         </header>

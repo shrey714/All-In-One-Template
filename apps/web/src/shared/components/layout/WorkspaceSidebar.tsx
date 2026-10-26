@@ -8,6 +8,9 @@ import {
   ChevronsUp,
   Clock3,
   FolderTree,
+  Info,
+  MoreHorizontal,
+  Pin,
   Search,
   Star,
   Trash2,
@@ -16,16 +19,31 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu"
+import {
   ActivityRail,
   type SidebarView,
 } from "@/shared/components/layout/ActivityRail"
 import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
 import type { ToolDefinition } from "@/shared/types/tool"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
+import { ToolInfoSheet } from "@/shared/components/layout/ToolInfoSheet"
 import {
+  MAX_PINNED_TOOLS,
   togglePinnedTool,
   usePinnedTools,
 } from "@/shared/services/pinned-tools"
+import {
+  isToolFavorite,
+  toggleFavoriteTool,
+  useFavoriteTools,
+} from "@/shared/services/favorite-tools"
 import {
   clearRecentTools,
   useRecentTools,
@@ -74,6 +92,7 @@ export function WorkspaceSidebar({
   onHelp,
 }: Props) {
   const pinnedTools = usePinnedTools()
+  const favoriteTools = useFavoriteTools()
   const recentTools = useRecentTools()
   const [filterQueries, setFilterQueries] = useState<
     Record<SidebarView, string>
@@ -81,6 +100,7 @@ export function WorkspaceSidebar({
   const [searchExpanded, setSearchExpanded] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const [collapsedDomains, setCollapsedDomains] = useState<string[]>([])
+  const [infoTool, setInfoTool] = useState<WorkspaceTool | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const [scrollEdges, setScrollEdges] = useState({ top: false, bottom: false })
   const filterQuery = filterQueries[view]
@@ -88,6 +108,9 @@ export function WorkspaceSidebar({
     setFilterQueries((current) => ({ ...current, [view]: value }))
   const query = filterQuery.trim().toLowerCase()
   const pinnedEntries = resolveStoredTools(pinnedTools)
+  const visiblePinnedEntries = pinnedEntries.filter(
+    (tool) => !query || includesQuery(tool, query)
+  )
   const recentEntries = resolveStoredTools(recentTools)
   const explorerEntries = allTools as WorkspaceTool[]
   const viewEntries =
@@ -195,7 +218,7 @@ export function WorkspaceSidebar({
           style={{ width }}
           className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden rounded-md border"
         >
-          <div className="flex p-1 w-full shrink-0 items-center justify-center">
+          <div className="flex w-full shrink-0 items-center justify-center p-1">
             <Button
               type="button"
               variant="ghost"
@@ -241,17 +264,22 @@ export function WorkspaceSidebar({
                         <div className="flex w-full flex-col items-center gap-1">
                           {tools.map((tool) => {
                             const Icon = tool.icon
+                            const favorite = isToolFavorite(favoriteTools, {
+                              domainId: tool.domainId,
+                              toolId: tool.id,
+                            })
                             return (
                               <NavLink
                                 key={`${tool.domainId}:${tool.id}`}
                                 to={tool.href}
-                                title={`${tool.domainName} · ${tool.name}`}
-                                aria-label={`${tool.domainName}: ${tool.name}`}
+                                title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
+                                aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
                                 className={({ isActive }) =>
-                                  `grid size-8 shrink-0 place-items-center rounded-sm border transition-colors ${isActive ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-background hover:text-foreground"}`
+                                  `relative grid size-8 shrink-0 place-items-center rounded-sm border transition-colors ${isActive ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-background hover:text-foreground"}`
                                 }
                               >
                                 <Icon className="size-4" />
+                                {favorite && <FavoriteDot compact />}
                               </NavLink>
                             )
                           })}
@@ -261,17 +289,22 @@ export function WorkspaceSidebar({
                   })
                 : shortcuts.map((tool) => {
                     const Icon = tool.icon
+                    const favorite = isToolFavorite(favoriteTools, {
+                      domainId: tool.domainId,
+                      toolId: tool.id,
+                    })
                     return (
                       <NavLink
                         key={`${tool.domainId}:${tool.id}`}
                         to={tool.href}
-                        title={`${tool.domainName} · ${tool.name}`}
-                        aria-label={`${tool.domainName}: ${tool.name}`}
+                        title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
+                        aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
                         className={({ isActive }) =>
-                          `grid size-10 shrink-0 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+                          `relative grid size-10 shrink-0 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
                         }
                       >
                         <Icon className="size-4" />
+                        {favorite && <FavoriteDot compact />}
                       </NavLink>
                     )
                   })}
@@ -450,6 +483,32 @@ export function WorkspaceSidebar({
           >
             {view === "explorer" ? (
               <nav aria-label="Domains and tools" className="space-y-0.5">
+                {visiblePinnedEntries.length > 0 && (
+                  <section
+                    aria-label="Pinned tools quick access"
+                    className="mb-2 space-y-0.5 border-b border-border/70 pb-2"
+                  >
+                    <div className="flex items-center gap-1 px-1 text-[9px] font-semibold tracking-[.12em] text-muted-foreground uppercase">
+                      <Pin className="size-3" /> Pinned
+                      <span className="ml-auto tabular-nums">
+                        {pinnedTools.length}/{MAX_PINNED_TOOLS}
+                      </span>
+                    </div>
+                    {visiblePinnedEntries.map((tool) => (
+                      <ToolRow
+                        key={`quick:${tool.domainId}:${tool.id}`}
+                        tool={tool}
+                        pinned
+                        favorite={isToolFavorite(favoriteTools, {
+                          domainId: tool.domainId,
+                          toolId: tool.id,
+                        })}
+                        pinLimitReached={false}
+                        onInfo={setInfoTool}
+                      />
+                    ))}
+                  </section>
+                )}
                 {filteredDomains.map(({ domain, tools, domainMatches }) => {
                   const DomainIcon = domain.icon
                   const isCollapsed =
@@ -461,7 +520,7 @@ export function WorkspaceSidebar({
                           to={`/domains/${domain.id}`}
                           end
                           className={({ isActive }) =>
-                            `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md pl-1 pr-2 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
+                            `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md pr-2 pl-1 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
                           }
                         >
                           <DomainIcon className="size-3.5 shrink-0 transition-colors group-hover:text-primary group-[.active]:text-primary" />
@@ -500,6 +559,14 @@ export function WorkspaceSidebar({
                                   item.domainId === domain.id &&
                                   item.toolId === tool.id
                               )}
+                              favorite={isToolFavorite(favoriteTools, {
+                                domainId: domain.id,
+                                toolId: tool.id,
+                              })}
+                              pinLimitReached={
+                                pinnedTools.length >= MAX_PINNED_TOOLS
+                              }
+                              onInfo={setInfoTool}
                             />
                           ))}
                         </div>
@@ -531,6 +598,12 @@ export function WorkspaceSidebar({
                         item.domainId === tool.domainId &&
                         item.toolId === tool.id
                     )}
+                    favorite={isToolFavorite(favoriteTools, {
+                      domainId: tool.domainId,
+                      toolId: tool.id,
+                    })}
+                    pinLimitReached={pinnedTools.length >= MAX_PINNED_TOOLS}
+                    onInfo={setInfoTool}
                     detail={view === "recent" ? "Recently opened" : undefined}
                   />
                 ))}
@@ -564,6 +637,7 @@ export function WorkspaceSidebar({
           )}
         </div>
       </aside>
+      <ToolInfoSheet tool={infoTool} onClose={() => setInfoTool(null)} />
     </div>
   )
 }
@@ -596,24 +670,36 @@ function ScrollEdgeShadows({
 function ToolRow({
   tool,
   pinned,
+  favorite,
+  pinLimitReached,
+  onInfo,
   detail,
 }: {
   tool: WorkspaceTool
   pinned: boolean
+  favorite: boolean
+  pinLimitReached: boolean
+  onInfo: (tool: WorkspaceTool) => void
   detail?: string
 }) {
   const Icon = tool.icon
+  const pinInput = {
+    domainId: tool.domainId,
+    toolId: tool.id,
+    href: tool.href,
+  }
   return (
     <div className="group flex items-center gap-1">
       <NavLink
         to={tool.href}
         className={({ isActive }) =>
-          `ml-2 flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-[11px] transition-colors ${isActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+          `ml-2 flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md border-l-2 px-2 text-[11px] transition-colors ${isActive ? "border-primary/60 bg-primary/10 font-medium text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`
         }
       >
         <Icon className="size-3.5 shrink-0" />
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="min-w-0 flex-1 truncate">{tool.name}</span>
+          {favorite && <FavoriteDot />}
           <ToolAvailabilityBadge availability={tool.availability} />
         </span>
         {detail && (
@@ -622,24 +708,72 @@ function ToolRow({
           </span>
         )}
       </NavLink>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        title={`${pinned ? "Unpin" : "Pin"} ${tool.name}`}
-        aria-label={`${pinned ? "Unpin" : "Pin"} ${tool.name}`}
-        aria-pressed={pinned}
-        onClick={() =>
-          togglePinnedTool({
-            domainId: tool.domainId,
-            toolId: tool.id,
-            href: tool.href,
-          })
-        }
-        className={`h-6 w-6 shrink-0 transition-opacity ${pinned ? "text-amber-500" : "text-muted-foreground opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"}`}
-      >
-        <Star className={`size-3.5 ${pinned ? "fill-current" : ""}`} />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            title={`More actions for ${tool.name}`}
+            aria-label={`More actions for ${tool.name}`}
+            className="h-6 w-6 shrink-0 text-muted-foreground opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+          >
+            <MoreHorizontal className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="right" className="w-48">
+          <DropdownMenuItem onSelect={() => onInfo(tool)}>
+            <Info className="size-3.5" />
+            Info
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={favorite}
+            onCheckedChange={() =>
+              toggleFavoriteTool({
+                domainId: tool.domainId,
+                toolId: tool.id,
+              })
+            }
+          >
+            <Star
+              className={`size-3.5 ${favorite ? "fill-current text-amber-500" : ""}`}
+            />
+            Favorite
+          </DropdownMenuCheckboxItem>
+          {pinLimitReached && !pinned ? (
+            <DropdownMenuItem disabled>
+              <Pin className="size-3.5" /> Pin limit reached (5)
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuCheckboxItem
+              checked={pinned}
+              onCheckedChange={() => togglePinnedTool(pinInput)}
+            >
+              <Pin
+                className={`size-3.5 ${pinned ? "fill-current text-primary" : ""}`}
+              />
+              {pinned ? "Unpin tool" : "Pin to top"}
+            </DropdownMenuCheckboxItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
+  )
+}
+
+function FavoriteDot({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      role="img"
+      aria-label="Favorite tool"
+      title="Favorite tool"
+      className={
+        compact
+          ? "absolute top-1 right-1 size-1.5 rounded-full bg-amber-400 ring-2 ring-background"
+          : "size-1.5 shrink-0 rounded-full bg-amber-400 ring-2 ring-amber-400/20"
+      }
+    />
   )
 }
 

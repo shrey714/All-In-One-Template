@@ -11,6 +11,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
 import {
+  MAX_PINNED_TOOLS,
   togglePinnedTool,
   usePinnedTools,
 } from "@/shared/services/pinned-tools"
@@ -87,6 +88,7 @@ export function HomePage() {
                 key={`${tool.domainId}:${tool.id}`}
                 tool={tool}
                 pinned
+                pinLimitReached={false}
                 onOpen={() => navigate(tool.href)}
               />
             ))}
@@ -159,6 +161,9 @@ export function HomePage() {
                             key={tool.id}
                             tool={entry}
                             pinned={pinned}
+                            pinLimitReached={
+                              pinnedTools.length >= MAX_PINNED_TOOLS
+                            }
                             onOpen={() => navigate(tool.href)}
                           />
                         )
@@ -222,10 +227,12 @@ function SectionHeading({
 function ToolActionRow({
   tool,
   pinned,
+  pinLimitReached,
   onOpen,
 }: {
   tool: WorkspaceTool
   pinned: boolean
+  pinLimitReached: boolean
   onOpen: () => void
 }) {
   const Icon = tool.icon
@@ -258,6 +265,7 @@ function ToolActionRow({
         title={`${pinned ? "Unpin" : "Pin"} ${tool.name}`}
         aria-label={`${pinned ? "Unpin" : "Pin"} ${tool.name}`}
         aria-pressed={pinned}
+        disabled={!pinned && pinLimitReached}
         onClick={() =>
           togglePinnedTool({
             domainId: tool.domainId,

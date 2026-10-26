@@ -14,6 +14,7 @@ export type PinnedToolInput = Pick<
 
 const STORAGE_KEY = "orbit.workspace.pinned-tools"
 const CHANGE_EVENT = "orbit:pinned-tools-changed"
+export const MAX_PINNED_TOOLS = 5
 let fallbackPins: PinnedToolRecord[] = []
 
 function readPinnedTools(): PinnedToolRecord[] {
@@ -22,14 +23,17 @@ function readPinnedTools(): PinnedToolRecord[] {
     if (stored === null) return fallbackPins
     const parsed: unknown = JSON.parse(stored)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (item): item is PinnedToolRecord =>
-        Boolean(item) &&
-        typeof item.domainId === "string" &&
-        typeof item.toolId === "string" &&
-        typeof item.href === "string" &&
-        typeof item.pinnedAt === "number"
-    )
+    return parsed
+      .filter(
+        (item): item is PinnedToolRecord =>
+          Boolean(item) &&
+          typeof item.domainId === "string" &&
+          typeof item.toolId === "string" &&
+          typeof item.href === "string" &&
+          typeof item.pinnedAt === "number"
+      )
+      .sort((a, b) => b.pinnedAt - a.pinnedAt)
+      .slice(0, MAX_PINNED_TOOLS)
   } catch {
     return fallbackPins
   }
@@ -54,6 +58,7 @@ export function togglePinnedTool(tool: PinnedToolInput): boolean {
   const exists = current.some(
     (item) => item.domainId === tool.domainId && item.toolId === tool.toolId
   )
+  if (!exists && current.length >= MAX_PINNED_TOOLS) return false
   const next = exists
     ? current.filter(
         (item) => item.domainId !== tool.domainId || item.toolId !== tool.toolId
