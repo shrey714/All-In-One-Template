@@ -1,4 +1,5 @@
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Orbit } from "lucide-react"
 
 export function DashboardLoadingSkeleton() {
   return (
@@ -84,6 +85,96 @@ export function DashboardLoadingSkeleton() {
         </div>
       </section>
     </div>
+  )
+}
+
+export function SystemPageLoadingSkeleton() {
+  return (
+    <main
+      role="status"
+      aria-label="Loading Orbit system page"
+      aria-busy="true"
+      className="flex min-h-svh flex-col bg-background text-foreground"
+    >
+      <span className="sr-only">Loading Orbit Workspace…</span>
+      <header className="border-b border-border/70">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="grid size-9 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+              <Orbit className="size-[18px]" strokeWidth={2.2} />
+            </span>
+            <span className="leading-none">
+              <span className="block text-[12px] font-semibold tracking-[.18em]">
+                ORBIT
+              </span>
+              <span className="mt-1 block text-[10px] tracking-[.12em] text-muted-foreground uppercase">
+                Workspace
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <Skeleton className="hidden h-7 w-28 rounded-md sm:block" />
+            <Skeleton className="size-8 rounded-md" />
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-5 py-9 sm:px-8 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] lg:gap-16">
+        <aside
+          className="hidden max-w-xl space-y-5 lg:block"
+          aria-hidden="true"
+        >
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-9 w-[min(28rem,90%)]" />
+          <Skeleton className="h-4 w-[min(32rem,90%)]" />
+          <div className="flex gap-2 pt-2">
+            {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton key={index} className="h-7 w-20 rounded-md" />
+            ))}
+          </div>
+          <div className="space-y-4 border-y py-4">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <Skeleton className="size-8 rounded-md" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-3 w-52" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section
+          className="mx-auto w-full max-w-md lg:justify-self-end"
+          aria-hidden="true"
+        >
+          <div className="space-y-5 rounded-xl border bg-card p-6 shadow-sm sm:p-7">
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+            <div className="space-y-4 pt-1">
+              {Array.from({ length: 2 }, (_, index) => (
+                <div key={index} className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-10 w-full rounded-md" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+        </section>
+      </div>
+
+      <footer className="border-t border-border/70">
+        <div className="mx-auto flex w-full max-w-7xl justify-between gap-3 px-5 py-3 text-[11px] text-muted-foreground sm:px-8">
+          <span>ORBIT WORKSPACE</span>
+          <Skeleton className="h-3 w-56 max-w-[55%]" aria-hidden="true" />
+        </div>
+      </footer>
+    </main>
   )
 }
 

@@ -17,8 +17,8 @@ export function SystemPageFrame({
   headerLabel,
   footerNote = "Orbit Workspace · Managed by your workspace administrator",
 }: SystemPageFrameProps) {
-  const { theme, setTheme } = useTheme()
-  const isDark = theme === "dark"
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
 
   return (
     <main className="flex min-h-svh flex-col bg-background text-foreground">

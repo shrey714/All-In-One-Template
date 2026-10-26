@@ -253,7 +253,6 @@ export function ChangePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [done, setDone] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -279,7 +278,6 @@ export function ChangePasswordPage() {
         requiresChange ? undefined : currentPassword,
         newPassword
       )
-      setDone(true)
       notify.success("Password updated", "Your Orbit account is ready to use.")
       navigate("/", { replace: true })
     } catch (failure) {
@@ -311,11 +309,6 @@ export function ChangePasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {done && (
-            <Alert className="mb-4">
-              <AlertDescription>Password updated.</AlertDescription>
-            </Alert>
-          )}
           <form className="space-y-4" onSubmit={submit}>
             {error && (
               <Alert variant="destructive">

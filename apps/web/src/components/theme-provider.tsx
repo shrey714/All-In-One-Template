@@ -12,6 +12,7 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
 }
 
@@ -91,6 +92,8 @@ export function ThemeProvider({
 
     return defaultTheme
   })
+  const [systemTheme, setSystemTheme] =
+    React.useState<ResolvedTheme>(getSystemTheme)
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {
@@ -121,14 +124,10 @@ export function ThemeProvider({
 
   React.useEffect(() => {
     applyTheme(theme)
-
-    if (theme !== "system") {
-      return undefined
-    }
-
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY)
     const handleChange = () => {
-      applyTheme("system")
+      setSystemTheme(mediaQuery.matches ? "dark" : "light")
+      if (theme === "system") applyTheme("system")
     }
 
     mediaQuery.addEventListener("change", handleChange)
@@ -206,9 +205,10 @@ export function ThemeProvider({
   const value = React.useMemo(
     () => ({
       theme,
+      resolvedTheme: theme === "system" ? systemTheme : theme,
       setTheme,
     }),
-    [theme, setTheme]
+    [theme, systemTheme, setTheme]
   )
 
   return (

@@ -11,6 +11,7 @@ import { RouteErrorBoundary } from "@/app/errors/RouteErrorBoundary"
 import { ToolErrorBoundary } from "@/app/errors/ToolErrorBoundary"
 import {
   DashboardLoadingSkeleton,
+  SystemPageLoadingSkeleton,
   ToolContentLoadingSkeleton,
 } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
 import {
@@ -111,7 +112,7 @@ const router = createBrowserRouter([
     path: "/login",
     element: (
       <LoginRedirect>
-        <Suspense fallback={<DashboardLoadingSkeleton />}>
+        <Suspense fallback={<SystemPageLoadingSkeleton />}>
           <LoginPage />
         </Suspense>
       </LoginRedirect>
@@ -121,7 +122,7 @@ const router = createBrowserRouter([
     path: "/change-password",
     element: (
       <RequireSignedIn>
-        <Suspense fallback={<DashboardLoadingSkeleton />}>
+        <Suspense fallback={<SystemPageLoadingSkeleton />}>
           <ChangePasswordPage />
         </Suspense>
       </RequireSignedIn>

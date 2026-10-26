@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react"
 import { isRouteErrorResponse, Link, useRouteError } from "react-router-dom"
 import { Button } from "@workspace/ui/components/button"
 import { AlertTriangle, ArrowLeft, Home, RotateCw } from "lucide-react"
+import { SystemPageLoadingSkeleton } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
 
 const SystemPageFrame = lazy(() =>
   import("@/shared/components/layout/SystemPageFrame").then((module) => ({
@@ -18,15 +19,7 @@ export function RouteErrorBoundary() {
       : "Unexpected route error"
 
   return (
-    <Suspense
-      fallback={
-        <main className="grid min-h-svh place-items-center bg-background p-6">
-          <p className="text-sm font-medium tracking-[.14em] text-muted-foreground uppercase">
-            Orbit Workspace
-          </p>
-        </main>
-      }
-    >
+    <Suspense fallback={<SystemPageLoadingSkeleton />}>
       <SystemPageFrame
         headerLabel="WORKSPACE STATUS"
         footerNote="If the problem persists, contact your Orbit administrator."

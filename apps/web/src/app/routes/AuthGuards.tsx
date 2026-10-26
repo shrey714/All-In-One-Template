@@ -10,21 +10,12 @@ import {
 } from "@workspace/ui/components/card"
 import { ArrowLeft, LoaderCircle, RotateCw, ShieldAlert } from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
+import { SystemPageLoadingSkeleton } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
 const SystemPageFrame = lazy(() =>
   import("@/shared/components/layout/SystemPageFrame").then((module) => ({
     default: module.SystemPageFrame,
   }))
 )
-
-function SystemFrameFallback() {
-  return (
-    <main className="grid min-h-svh place-items-center bg-background p-6">
-      <p className="text-sm font-medium tracking-[.14em] text-muted-foreground uppercase">
-        Orbit Workspace
-      </p>
-    </main>
-  )
-}
 
 function AuthProgress({
   message = "Checking your Orbit session…",
@@ -32,7 +23,7 @@ function AuthProgress({
   message?: string
 }) {
   return (
-    <Suspense fallback={<SystemFrameFallback />}>
+    <Suspense fallback={<SystemPageLoadingSkeleton />}>
       <SystemPageFrame
         headerLabel="SECURE WORKSPACE"
         footerNote="Preparing your secure workspace…"
@@ -61,7 +52,7 @@ function AuthProgress({
 function BackendUnavailable() {
   const { refresh } = useAuth()
   return (
-    <Suspense fallback={<SystemFrameFallback />}>
+    <Suspense fallback={<SystemPageLoadingSkeleton />}>
       <SystemPageFrame
         headerLabel="CONNECTION STATUS"
         footerNote="Your sign-in credentials are never stored in browser local storage."
@@ -95,6 +86,37 @@ function BackendUnavailable() {
   )
 }
 
+function AccessDenied() {
+  return (
+    <section className="grid min-h-[min(62vh,640px)] place-items-center py-8">
+      <Card className="w-full max-w-xl overflow-hidden border-amber-500/25">
+        <div className="h-1.5 bg-amber-500" />
+        <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
+          <span className="grid size-14 place-items-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <ShieldAlert className="size-6" aria-hidden="true" />
+          </span>
+          <p className="mt-4 text-xs font-semibold tracking-widest text-amber-700 uppercase dark:text-amber-400">
+            Access control · 403
+          </p>
+          <h1 className="mt-2 text-xl font-semibold tracking-tight">
+            Administrator access required
+          </h1>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+            This area is reserved for workspace administrators. Your account is
+            still active; contact an administrator if you need user-management
+            access.
+          </p>
+          <Button className="mt-6" asChild>
+            <Link to="/">
+              <ArrowLeft className="size-4" /> Return to workspace
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </section>
+  )
+}
+
 export function RequireAuth({ children }: { children?: ReactNode }) {
   const { status, user, authEnabled } = useAuth()
   const location = useLocation()
@@ -120,7 +142,8 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, authEnabled } = useAuth()
   if (!authEnabled) return <Navigate to="/" replace />
-  if (user?.role !== "admin") return <Navigate to="/" replace />
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== "admin") return <AccessDenied />
   return children
 }
 
