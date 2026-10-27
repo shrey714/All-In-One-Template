@@ -23,13 +23,20 @@ import { getDomain, getTool } from "@/shared/config/registry"
 import { AuthProvider } from "@/app/providers/AuthProvider"
 import {
   LoginRedirect,
-  RequireAdmin,
   RequireAuth,
+  RequireDomainAccess,
+  RequirePermission,
   RequireSignedIn,
+  RequireToolAccess,
 } from "@/app/routes/AuthGuards"
 const AdminUsersPage = lazy(() =>
   import("@/app/pages/AdminUsersPage").then((module) => ({
     default: module.AdminUsersPage,
+  }))
+)
+const AdminRolesPage = lazy(() =>
+  import("@/app/pages/AdminRolesPage").then((module) => ({
+    default: module.AdminRolesPage,
   }))
 )
 
@@ -132,7 +139,9 @@ const router = createBrowserRouter([
     path: "/",
     element: (
       <RequireAuth>
-        <AppShell />
+        <RequirePermission permission="dashboard:access">
+          <AppShell />
+        </RequirePermission>
       </RequireAuth>
     ),
     errorElement: <RouteErrorBoundary />,
@@ -145,16 +154,34 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      { path: "domains/:domainId", element: <DomainRoute /> },
-      { path: "domains/:domainId/tools/:toolId", element: <ToolRoute /> },
+      {
+        path: "domains/:domainId",
+        element: (
+          <RequireDomainAccess>
+            <DomainRoute />
+          </RequireDomainAccess>
+        ),
+      },
+      {
+        path: "domains/:domainId/tools/:toolId",
+        element: (
+          <RequireToolAccess>
+            <ToolRoute />
+          </RequireToolAccess>
+        ),
+      },
       {
         path: "domains/:domainId/tools/:toolId/steps/:stepId",
-        element: <ToolRoute />,
+        element: (
+          <RequireToolAccess>
+            <ToolRoute />
+          </RequireToolAccess>
+        ),
       },
       {
         path: "admin/users",
         element: (
-          <RequireAdmin>
+          <RequirePermission permission="users:read">
             <Suspense
               fallback={
                 <ToolContentLoadingSkeleton toolName="User management" />
@@ -162,7 +189,19 @@ const router = createBrowserRouter([
             >
               <AdminUsersPage />
             </Suspense>
-          </RequireAdmin>
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "admin/roles",
+        element: (
+          <RequirePermission permission="roles:read">
+            <Suspense
+              fallback={<ToolContentLoadingSkeleton toolName="Access roles" />}
+            >
+              <AdminRolesPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {

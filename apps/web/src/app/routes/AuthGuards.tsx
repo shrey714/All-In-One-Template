@@ -1,5 +1,12 @@
-import { lazy, Suspense, type ReactNode } from "react"
-import { Link, Navigate, Outlet, useLocation } from "react-router-dom"
+import { lazy, Suspense, useState, type ReactNode } from "react"
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -8,10 +15,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import { ArrowLeft, LoaderCircle, RotateCw, ShieldAlert } from "lucide-react"
+import {
+  ArrowLeft,
+  LoaderCircle,
+  LogOut,
+  RotateCw,
+  ShieldAlert,
+} from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { SystemPageLoadingSkeleton } from "@/shared/components/layout/WorkspaceLoadingSkeleton"
 import { branding } from "@/shared/config/orbit-config"
+import { getDomain } from "@/shared/config/registry"
+import {
+  canAccessTool,
+  canAccessDomain,
+  hasDashboardAccess,
+  hasPermission,
+  type Permission,
+} from "@/shared/types/auth"
 const SystemPageFrame = lazy(() =>
   import("@/shared/components/layout/SystemPageFrame").then((module) => ({
     default: module.SystemPageFrame,
@@ -87,33 +108,92 @@ function BackendUnavailable() {
   )
 }
 
-function AccessDenied() {
-  return (
-    <section className="grid min-h-[min(62vh,640px)] place-items-center py-8">
-      <Card className="w-full max-w-xl overflow-hidden border-amber-500/25">
-        <div className="h-1.5 bg-amber-500" />
-        <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
-          <span className="grid size-14 place-items-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <ShieldAlert className="size-6" aria-hidden="true" />
-          </span>
-          <p className="mt-4 text-xs font-semibold tracking-widest text-amber-700 uppercase dark:text-amber-400">
-            Access control · 403
+function AccessDenied({ permission }: { permission: Permission }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [signingOut, setSigningOut] = useState(false)
+  const isDashboardDenied = permission === "dashboard:access"
+
+  const signOutAndSwitch = async () => {
+    setSigningOut(true)
+    try {
+      await logout()
+      navigate("/login", { replace: true })
+    } catch {
+      // The provider clears local identity even if the server cannot be reached.
+      navigate("/login", { replace: true })
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
+  const content = (
+    <Card className="w-full max-w-xl overflow-hidden border-amber-500/25">
+      <div className="h-1.5 bg-amber-500" />
+      <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
+        <span className="grid size-14 place-items-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <ShieldAlert className="size-6" aria-hidden="true" />
+        </span>
+        <p className="mt-4 text-xs font-semibold tracking-widest text-amber-700 uppercase dark:text-amber-400">
+          Access control · 403
+        </p>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight">
+          {isDashboardDenied
+            ? "You’re signed in, but don’t have workspace access"
+            : `Required permission: ${permission}`}
+        </h1>
+        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+          {isDashboardDenied
+            ? "Your account is active, but no assigned role grants dashboard access. Contact your workspace administrator to request access, or sign out to use another account."
+            : "Your account is active, but it does not have the capability needed for this area. Contact a workspace administrator if you need access."}
+        </p>
+        {isDashboardDenied && user && (
+          <p className="mt-4 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Signed in as{" "}
+            <span className="font-medium text-foreground">
+              {user.displayName}
+            </span>{" "}
+            ({user.username})
           </p>
-          <h1 className="mt-2 text-xl font-semibold tracking-tight">
-            Administrator access required
-          </h1>
-          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            This area is reserved for workspace administrators. Your account is
-            still active; contact an administrator if you need user-management
-            access.
-          </p>
+        )}
+        {isDashboardDenied ? (
+          <Button
+            className="mt-6"
+            onClick={() => void signOutAndSwitch()}
+            disabled={signingOut}
+          >
+            <LogOut className="size-4" />
+            {signingOut ? "Signing out…" : "Sign out and switch account"}
+          </Button>
+        ) : (
           <Button className="mt-6" asChild>
             <Link to="/">
               <ArrowLeft className="size-4" /> Return to workspace
             </Link>
           </Button>
-        </CardContent>
-      </Card>
+        )}
+      </CardContent>
+    </Card>
+  )
+
+  if (isDashboardDenied) {
+    return (
+      <Suspense fallback={<SystemPageLoadingSkeleton />}>
+        <SystemPageFrame
+          headerLabel="WORKSPACE ACCESS"
+          footerNote="Access is assigned by your workspace administrator."
+        >
+          <section className="grid min-h-[min(62vh,640px)] place-items-center py-8">
+            {content}
+          </section>
+        </SystemPageFrame>
+      </Suspense>
+    )
+  }
+
+  return (
+    <section className="grid min-h-[min(62vh,640px)] place-items-center py-8">
+      {content}
     </section>
   )
 }
@@ -140,11 +220,55 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
   return children
 }
 
-export function RequireAdmin({ children }: { children: ReactNode }) {
+export function RequirePermission({
+  children,
+  permission,
+}: {
+  children: ReactNode
+  permission: Permission
+}) {
   const { user, authEnabled } = useAuth()
-  if (!authEnabled) return <Navigate to="/" replace />
+  if (!authEnabled)
+    return permission === "dashboard:access" || permission === "tools:use" ? (
+      children
+    ) : (
+      <Navigate to="/" replace />
+    )
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== "admin") return <AccessDenied />
+  if (!hasPermission(user, permission))
+    return <AccessDenied permission={permission} />
+  return children
+}
+
+export function RequireToolAccess({ children }: { children: ReactNode }) {
+  const { domainId = "", toolId = "" } = useParams()
+  const { user, authEnabled } = useAuth()
+  if (!authEnabled) return children
+  if (!user) return <Navigate to="/login" replace />
+  if (!hasDashboardAccess(user))
+    return <AccessDenied permission="dashboard:access" />
+  if (!canAccessTool(user, domainId, toolId))
+    return <AccessDenied permission={`tool:${domainId}/${toolId}:access`} />
+  return children
+}
+
+export function RequireDomainAccess({ children }: { children: ReactNode }) {
+  const { domainId = "" } = useParams()
+  const { user, authEnabled } = useAuth()
+  if (!authEnabled) return children
+  if (!user) return <Navigate to="/login" replace />
+  if (!hasDashboardAccess(user))
+    return <AccessDenied permission="dashboard:access" />
+  const domain = getDomain(domainId)
+  if (
+    !domain ||
+    !canAccessDomain(
+      user,
+      domainId,
+      domain.tools.map((tool) => tool.id)
+    )
+  )
+    return <AccessDenied permission={`domain:${domainId}:access`} />
   return children
 }
 

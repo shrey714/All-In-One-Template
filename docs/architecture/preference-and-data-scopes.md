@@ -4,14 +4,14 @@ This document is the ownership contract for Orbit settings and tool data. A valu
 
 ## Scopes
 
-| Scope | Owner | Examples | Persistence and access |
-| --- | --- | --- | --- |
-| Deployment | The operator/deployer | Product branding, auth enabled, idle timeout, allowed identity providers, default roles | Version-controlled deployment configuration or secret manager. Never writable through the user UI. Secrets are not stored in `orbit.config.json`. |
-| Workspace | One Orbit installation/tenant | Shared defaults, enabled domains/tools, workspace-wide policy and future shared templates | Server database, keyed by workspace/tenant. Read/write requires a server authorization check and an audit event for administrative changes. |
-| User | One account within a workspace | Theme, Explorer layout, favorites, pins, recent items, personal dashboard defaults | User-owned records, keyed by `(workspace_id, user_id)`. A user cannot read or mutate another user's records by changing request parameters. |
-| Domain | One user's or workspace's data within a domain | Finance preferences, health settings, domain-level saved views | Keyed by owner scope and `domain_id`; domain IDs are validated against the registered catalog. Use workspace ownership only when the data is intentionally shared. |
-| Tool | One user's or workspace's data for a tool | EMI calculator defaults, Pomodoro settings, saved tool presets | Keyed by owner scope plus `(domain_id, tool_id)`. Validate both identifiers and enforce the selected scope on the server. |
-| Session | One authenticated login | Opaque session token hash, expiry, last activity, revocation | Server-only session table. Browser receives only an HttpOnly, Secure-in-production, SameSite cookie; never put session credentials in localStorage or tool data. |
+| Scope      | Owner                                          | Examples                                                                                  | Persistence and access                                                                                                                                             |
+| ---------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deployment | The operator/deployer                          | Product branding, auth enabled, idle timeout, allowed identity providers, default roles   | Version-controlled deployment configuration or secret manager. Never writable through the user UI. Secrets are not stored in `orbit.config.json`.                  |
+| Workspace  | One Orbit installation/tenant                  | Shared defaults, enabled domains/tools, workspace-wide policy and future shared templates | Server database, keyed by workspace/tenant. Read/write requires a server authorization check and an audit event for administrative changes.                        |
+| User       | One account within a workspace                 | Theme, Explorer layout, favorites, pins, recent items, personal dashboard defaults        | User-owned records, keyed by `(workspace_id, user_id)`. A user cannot read or mutate another user's records by changing request parameters.                        |
+| Domain     | One user's or workspace's data within a domain | Finance preferences, health settings, domain-level saved views                            | Keyed by owner scope and `domain_id`; domain IDs are validated against the registered catalog. Use workspace ownership only when the data is intentionally shared. |
+| Tool       | One user's or workspace's data for a tool      | EMI calculator defaults, Pomodoro settings, saved tool presets                            | Keyed by owner scope plus `(domain_id, tool_id)`. Validate both identifiers and enforce the selected scope on the server.                                          |
+| Session    | One authenticated login                        | Opaque session token hash, expiry, last activity, revocation                              | Server-only session table. Browser receives only an HttpOnly, Secure-in-production, SameSite cookie; never put session credentials in localStorage or tool data.   |
 
 ## Preferences versus tool data
 
@@ -25,7 +25,7 @@ A tool must declare the scope and data classification for every persisted field.
 - Authentication identities, roles, and sessions live in the backend database. Password hashes and session-token hashes are server-only.
 - Existing visual preferences and tool defaults use browser `localStorage`. These are currently device/browser-local; they are not synchronized across devices and must not be described as workspace-shared or treated as sensitive business data.
 - Favorites, pins, and recent tools are also browser-local. Their keys are product-namespaced but are not yet account-isolated. Avoid shared/computer sign-in scenarios until per-user namespacing or server persistence is implemented.
-- Admin/Member is the current authorization model. Workspace/domain/tool permission claims are not yet implemented. Hiding a control in React is never an authorization boundary.
+- Dynamic database-backed roles and dashboard/domain/tool/feature grants are implemented; see the [RBAC contract](rbac.md). Preference ownership and cross-user data isolation remain separate concerns: authorization to open a tool does not imply permission to read another user's saved data. Hiding a control in React is never an authorization boundary.
 
 ## Rules for the next persistence phase
 

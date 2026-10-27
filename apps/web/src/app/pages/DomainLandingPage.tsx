@@ -4,11 +4,19 @@ import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 import { getDomain } from "@/shared/config/registry"
+import { useAuth } from "@/app/providers/AuthProvider"
+import { canAccessTool } from "@/shared/types/auth"
 
 export function DomainLandingPage() {
   const { domainId = "" } = useParams()
+  const { user, authEnabled } = useAuth()
   const domain = getDomain(domainId)
   if (!domain) return null
+  const visibleTools = authEnabled
+    ? domain.tools.filter(
+        (tool) => user && canAccessTool(user, domain.id, tool.id)
+      )
+    : domain.tools
   const Icon = domain.icon
 
   return (
@@ -30,7 +38,7 @@ export function DomainLandingPage() {
             </p>
           </div>
           <span className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground">
-            {domain.tools.length} registered tools
+            {visibleTools.length} available tools
           </span>
         </div>
         <div className="p-5 md:p-7">
@@ -41,9 +49,9 @@ export function DomainLandingPage() {
               catalog.
             </p>
           </div>
-          {domain.tools.length ? (
+          {visibleTools.length ? (
             <div className="grid gap-3 md:grid-cols-2">
-              {domain.tools.map((tool) => {
+              {visibleTools.map((tool) => {
                 const ToolIcon = tool.icon
                 return (
                   <Link key={tool.id} to={tool.href} className="group">
@@ -76,14 +84,22 @@ export function DomainLandingPage() {
                 <Compass className="size-5" />
               </span>
               <h3 className="mt-3 text-sm font-semibold">
-                Your {domain.name.toLowerCase()} toolkit starts here
+                {domain.tools.length
+                  ? "No tools assigned"
+                  : `Your ${domain.name.toLowerCase()} toolkit starts here`}
               </h3>
               <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                The domain scaffold is ready. Add a tool folder under{" "}
-                <code className="rounded bg-muted px-1 py-0.5">
-                  src/domains/{domain.id}/tools
-                </code>
-                , then register it in the central tool catalog.
+                {domain.tools.length ? (
+                  "Your account does not currently have access to tools in this domain. Ask an administrator to assign a matching role."
+                ) : (
+                  <>
+                    The domain scaffold is ready. Add a tool folder under{" "}
+                    <code className="rounded bg-muted px-1 py-0.5">
+                      src/domains/{domain.id}/tools
+                    </code>
+                    , then register it in the central tool catalog.
+                  </>
+                )}
               </p>
               <Button asChild variant="outline" size="sm" className="mt-4">
                 <Link to="/">

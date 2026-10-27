@@ -27,7 +27,9 @@ Create the first administrator once from an interactive terminal. The password i
 npm run bootstrap:admin --prefix backend
 ```
 
-There is no public signup endpoint. Admins provision Member/Admin accounts from **Account → Manage users**; new users must change their temporary password at first sign-in. SQLite data is stored under `backend/data/` and ignored by Git. For production, build the two projects separately. Host the frontend and API behind a same-origin reverse proxy that forwards `/api` to the backend; set `ORBIT_WEB_ORIGIN` to the public HTTPS origin so the API validates browser write requests and marks session cookies secure:
+There is no public signup endpoint. Authorized administrators provision accounts from **Account → Manage users** and create or update role bundles from **Account → Access roles**. Accounts can hold multiple roles; new users must change their temporary password at first sign-in. Login alone does not grant workspace access: the account needs `dashboard:access`, plus the appropriate domain/tool grants. SQLite data is stored under `backend/data/` and ignored by Git. For production, build the two projects separately. Host the frontend and API behind a same-origin reverse proxy that forwards `/api` to the backend; set `ORBIT_WEB_ORIGIN` to the public HTTPS origin so the API validates browser write requests and marks session cookies secure:
+
+See [the dynamic RBAC model](docs/architecture/rbac.md) for built-in roles, dashboard/domain/tool/feature scopes, role delegation safeguards, and backend authorization rules.
 
 Global authentication behavior is configured in the repository-root `orbit.config.json`. Set `auth.enabled` to `false` to allow dashboard access without sign-in; this makes the workspace available to anyone who can reach it, so use that only on a trusted/private network. Set `auth.inactivityTimeoutMinutes` to the desired idle duration (or `0` to disable idle expiry while leaving authentication enabled). `auth.warningBeforeTimeoutSeconds` controls how early the “Still there?” popup appears. Frontend config is embedded at Vite startup/build and backend config is read at backend startup, so restart Vite and the backend after changing these values. Keep the frontend and backend on the same root config for consistent behavior.
 
@@ -66,6 +68,17 @@ Brand configuration is build-time frontend configuration: restart the Vite dev s
 ## Source layout
 
 See [the preference and data scope contract](docs/architecture/preference-and-data-scopes.md) before adding persisted settings or tool data. It defines deployment, workspace, user, domain, tool, and session ownership and documents which existing preferences remain browser-local.
+
+## Extension scaffolding
+
+Use the dependency-free Node scaffolder to create consistent module structure and starter documentation:
+
+```bash
+npm run scaffold:domain -- --id customer-support --name "Customer Support" --description "Support workflows and customer insights." --icon Headphones --tone cyan
+npm run scaffold:tool -- --domain customer-support --id response-library --name "Response library" --description "Organize reusable support responses." --icon BookOpen --category Writing
+```
+
+The domain must be scaffolded first. Each command supports `--help`, validates IDs and required fields, refuses to overwrite existing folders, and prints copyable registration steps for `apps/web/src/shared/config/registry.tsx`; it deliberately does not rewrite that critical registry automatically. The tool generator copies the existing modular template, adds a starter component and per-module `info.html`, and reminds you to verify the Lucide icon and keep protected data authorization on the backend. After applying the registry snippets, run web lint, typecheck, and build. See the [full module conventions](apps/web/src/domains/_template/README.md).
 
 ```text
 apps/web/

@@ -34,6 +34,8 @@ import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
 import type { ToolDefinition } from "@/shared/types/tool"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 import { ToolInfoSheet } from "@/shared/components/layout/ToolInfoSheet"
+import { useAuth } from "@/app/providers/AuthProvider"
+import { canAccessTool } from "@/shared/types/auth"
 import {
   MAX_PINNED_TOOLS,
   togglePinnedTool,
@@ -91,6 +93,9 @@ export function WorkspaceSidebar({
   onSettings,
   onHelp,
 }: Props) {
+  const { user, authEnabled } = useAuth()
+  const hasToolAccess = (tool: { domainId: string; id: string }) =>
+    !authEnabled || Boolean(user && canAccessTool(user, tool.domainId, tool.id))
   const pinnedTools = usePinnedTools()
   const favoriteTools = useFavoriteTools()
   const recentTools = useRecentTools()
@@ -107,12 +112,12 @@ export function WorkspaceSidebar({
   const setFilterQuery = (value: string) =>
     setFilterQueries((current) => ({ ...current, [view]: value }))
   const query = filterQuery.trim().toLowerCase()
-  const pinnedEntries = resolveStoredTools(pinnedTools)
+  const pinnedEntries = resolveStoredTools(pinnedTools).filter(hasToolAccess)
   const visiblePinnedEntries = pinnedEntries.filter(
     (tool) => !query || includesQuery(tool, query)
   )
-  const recentEntries = resolveStoredTools(recentTools)
-  const explorerEntries = allTools as WorkspaceTool[]
+  const recentEntries = resolveStoredTools(recentTools).filter(hasToolAccess)
+  const explorerEntries = (allTools as WorkspaceTool[]).filter(hasToolAccess)
   const viewEntries =
     view === "pinned"
       ? pinnedEntries

@@ -1,7 +1,11 @@
 import { createInterface } from "node:readline/promises"
 import { stdin, stdout } from "node:process"
 import { hashPassword, isValidPasswordLength } from "./password.js"
-import { activeAdminCount, openDatabase } from "./database.js"
+import {
+  activeAdminCount,
+  establishSystemAdmin,
+  openDatabase,
+} from "./database.js"
 
 async function readMasked(prompt: string) {
   if (!stdin.isTTY || typeof stdin.setRawMode !== "function") {
@@ -72,12 +76,15 @@ async function main() {
     if (password !== confirmation) throw new Error("Passwords do not match.")
     const passwordHash = await hashPassword(password)
     const now = new Date().toISOString()
-    database
+    const result = database
       .prepare(
         "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES (?, ?, ?, 'admin', 1, 0, ?, ?)"
       )
       .run(username, username, passwordHash, now, now)
-    console.log(`Initial Admin '${username}' created. Sign in at /login.`)
+    establishSystemAdmin(database, Number(result.lastInsertRowid))
+    console.log(
+      `Initial System administrator '${username}' created. Sign in at /login.`
+    )
   } finally {
     database.close()
   }

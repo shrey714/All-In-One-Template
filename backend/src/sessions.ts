@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto"
 import type { Request, RequestHandler, Response } from "express"
-import type { OrbitDatabase, PublicUser, UserRecord } from "./database.js"
-import { getUserById, toPublicUser } from "./database.js"
+import type { OrbitDatabase, UserRecord } from "./database.js"
+import { getUserById, getUserPermissions } from "./database.js"
+import { roleHasPermission, type Permission } from "./permissions.js"
 
 export const SESSION_COOKIE = "orbit_session"
 export const SESSION_LIFETIME_MS = 8 * 60 * 60 * 1000
@@ -9,6 +10,7 @@ export const SESSION_LIFETIME_MS = 8 * 60 * 60 * 1000
 export interface AuthenticatedRequest extends Request {
   orbitUser?: UserRecord
   orbitSessionHash?: string
+  orbitPermissions?: string[]
 }
 
 export function hashSessionToken(token: string) {
@@ -124,13 +126,15 @@ export function createRequireAuth(
     const authenticated = request as AuthenticatedRequest
     authenticated.orbitUser = user
     authenticated.orbitSessionHash = tokenHash
+    authenticated.orbitPermissions = getUserPermissions(database, user.id)
     next()
   }
 }
 
-export function requireAdmin(
+export function requirePermission(
   request: Request,
-  response: Response
+  response: Response,
+  permission: Permission
 ): request is AuthenticatedRequest & { orbitUser: UserRecord } {
   const user = (request as AuthenticatedRequest).orbitUser
   if (!user) {
@@ -143,8 +147,69 @@ export function requireAdmin(
       .json({ error: "Change your temporary password first." })
     return false
   }
-  if (user.role !== "admin") {
-    response.status(403).json({ error: "Administrator access is required." })
+  if (
+    !roleHasPermission(
+      (request as AuthenticatedRequest).orbitPermissions ?? [],
+      permission
+    )
+  ) {
+    response
+      .status(403)
+      .json({ error: "You do not have permission to do this." })
+    return false
+  }
+  return true
+}
+
+export function requireToolAccess(
+  request: Request,
+  response: Response,
+  domainId: string,
+  toolId: string
+) {
+  const user = (request as AuthenticatedRequest).orbitUser
+  if (!user) {
+    response.status(401).json({ error: "Authentication required." })
+    return false
+  }
+  if (user.must_change_password === 1) {
+    response
+      .status(403)
+      .json({ error: "Change your temporary password first." })
+    return false
+  }
+  const grants = (request as AuthenticatedRequest).orbitPermissions ?? []
+  if (!roleHasPermission(grants, "dashboard:access")) {
+    response.status(403).json({ error: "Dashboard access is required." })
+    return false
+  }
+  const allowed = [
+    "tools:use",
+    `domain:${domainId}:access`,
+    `tool:${domainId}/${toolId}:access`,
+  ].some((grant) => roleHasPermission(grants, grant))
+  if (!allowed) {
+    response.status(403).json({ error: "You do not have access to this tool." })
+    return false
+  }
+  return true
+}
+
+export function requireFeaturePermission(
+  request: Request,
+  response: Response,
+  domainId: string,
+  toolId: string,
+  featureId: string,
+  action: string
+) {
+  if (!requireToolAccess(request, response, domainId, toolId)) return false
+  const grants = (request as AuthenticatedRequest).orbitPermissions ?? []
+  const required = `feature:${domainId}/${toolId}/${featureId}:${action}`
+  if (!roleHasPermission(grants, required)) {
+    response
+      .status(403)
+      .json({ error: "You do not have permission for this tool action." })
     return false
   }
   return true
@@ -166,8 +231,4 @@ export function requireCompletedPasswordChange(
     return false
   }
   return true
-}
-
-export function publicUser(user: UserRecord): PublicUser {
-  return toPublicUser(user)
 }

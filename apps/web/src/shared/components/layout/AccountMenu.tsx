@@ -11,6 +11,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu"
 import { KeyRound, LogOut, Shield, UserRound, Users } from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
+import { hasPermission } from "@/shared/types/auth"
 
 export function AccountMenu({ className = "" }: { className?: string }) {
   const { user, logout } = useAuth()
@@ -58,15 +59,25 @@ export function AccountMenu({ className = "" }: { className?: string }) {
             {user.displayName}
           </span>
           <span className="block truncate font-normal">
-            @{user.username} · {user.role === "admin" ? "Admin" : "Member"}
+            @{user.username} ·{" "}
+            {user.roles.map((role) => role.name).join(", ") ||
+              "No access roles"}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {user.role === "admin" && (
+        {hasPermission(user, "users:read") && (
           <DropdownMenuItem asChild>
             <Link to="/admin/users">
               <Users />
               <span>Manage users</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {hasPermission(user, "roles:read") && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin/roles">
+              <Shield />
+              <span>Access roles</span>
             </Link>
           </DropdownMenuItem>
         )}
@@ -88,7 +99,7 @@ export function AccountMenu({ className = "" }: { className?: string }) {
             void signOut()
           }}
         >
-          {user.role === "admin" ? <Shield /> : <UserRound />}
+          {hasPermission(user, "users:read") ? <Shield /> : <UserRound />}
           <span>Sign out</span>
           <LogOut className="ml-auto" />
         </DropdownMenuItem>

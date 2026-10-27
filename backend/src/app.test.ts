@@ -3,6 +3,7 @@ import { createServer, type Server } from "node:http"
 import test, { after, before } from "node:test"
 import Database from "better-sqlite3"
 import { createApp } from "./app.js"
+import { establishSystemAdmin, openDatabase } from "./database.js"
 import { hashPassword } from "./password.js"
 import { hashSessionToken } from "./sessions.js"
 
@@ -15,35 +16,15 @@ let server: Server
 let baseUrl = ""
 
 before(async () => {
-  database = new Database(":memory:")
-  database.pragma("foreign_keys = ON")
-  database.exec(`
-    CREATE TABLE users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL COLLATE NOCASE UNIQUE,
-      display_name TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('admin', 'member')),
-      is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
-      must_change_password INTEGER NOT NULL DEFAULT 0 CHECK (must_change_password IN (0, 1)),
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE sessions (
-      token_hash TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL,
-      last_seen_at INTEGER NOT NULL
-    );
-  `)
+  database = openDatabase(":memory:")
   const passwordHash = await hashPassword(ADMIN_PASSWORD)
   const now = new Date().toISOString()
-  database
+  const admin = database
     .prepare(
       "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES ('rootadmin', 'Orbit Admin', ?, 'admin', 1, 0, ?, ?)"
     )
     .run(passwordHash, now, now)
+  establishSystemAdmin(database, Number(admin.lastInsertRowid))
   server = createServer(createApp(database))
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const address = server.address()
@@ -122,10 +103,11 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
   assert.equal(adminLogin.status, 200)
   const adminCookie = sessionCookie(adminLogin)
   const adminPayload = (await adminLogin.json()) as {
-    user: { role: string; mustChangePassword: boolean }
+    user: { role: string; permissions: string[]; mustChangePassword: boolean }
   }
   assert.equal(adminPayload.user.role, "admin")
   assert.equal(adminPayload.user.mustChangePassword, false)
+  assert.ok(adminPayload.user.permissions.includes("*"))
 
   const createMember = await call("/api/admin/users", {
     method: "POST",
@@ -133,7 +115,7 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
     body: {
       username: "member.one",
       displayName: "Member One",
-      role: "member",
+      roleIds: ["dashboard-access"],
       temporaryPassword: MEMBER_TEMP_PASSWORD,
     },
   })
@@ -168,9 +150,12 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
   assert.equal(memberLogin.status, 200)
   const memberCookie = sessionCookie(memberLogin)
   const forcedChange = (await memberLogin.json()) as {
-    user: { mustChangePassword: boolean }
+    user: { permissions: string[]; mustChangePassword: boolean }
   }
   assert.equal(forcedChange.user.mustChangePassword, true)
+  assert.ok(forcedChange.user.permissions.includes("dashboard:access"))
+  assert.ok(!forcedChange.user.permissions.includes("tools:use"))
+  assert.ok(!forcedChange.user.permissions.includes("users:read"))
 
   const forbiddenAdminRead = await call("/api/admin/users", {
     cookie: memberCookie,
@@ -189,6 +174,49 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
   }
   assert.equal(changedPayload.user.mustChangePassword, false)
 
+  const memberProfile = await call("/api/auth/me", {
+    cookie: renewedMemberCookie,
+  })
+  const memberProfilePayload = (await memberProfile.json()) as {
+    user: { permissions: string[] }
+  }
+  assert.ok(memberProfilePayload.user.permissions.includes("dashboard:access"))
+  assert.ok(!memberProfilePayload.user.permissions.includes("tools:use"))
+  assert.ok(!memberProfilePayload.user.permissions.includes("users:read"))
+
+  const memberCreateUser = await call("/api/admin/users", {
+    method: "POST",
+    cookie: renewedMemberCookie,
+    body: {
+      username: "blocked.user",
+      displayName: "Blocked",
+      role: "member",
+      temporaryPassword: MEMBER_TEMP_PASSWORD,
+    },
+  })
+  assert.equal(memberCreateUser.status, 403)
+  const memberRoleChange = await call(`/api/admin/users/${memberId}/roles`, {
+    method: "PATCH",
+    cookie: renewedMemberCookie,
+    body: { roleIds: ["access-manager"] },
+  })
+  assert.equal(memberRoleChange.status, 403)
+  const memberAccessChange = await call(`/api/admin/users/${memberId}/active`, {
+    method: "PATCH",
+    cookie: renewedMemberCookie,
+    body: { isActive: false },
+  })
+  assert.equal(memberAccessChange.status, 403)
+  const memberCredentialReset = await call(
+    `/api/admin/users/${memberId}/temporary-password`,
+    {
+      method: "POST",
+      cookie: renewedMemberCookie,
+      body: { temporaryPassword: MEMBER_RESET_PASSWORD },
+    }
+  )
+  assert.equal(memberCredentialReset.status, 403)
+
   const oldMemberSession = await call("/api/auth/me", { cookie: memberCookie })
   assert.equal(
     oldMemberSession.status,
@@ -198,27 +226,124 @@ test("username/password auth, session lifecycle, no public signup, and admin/mem
   const memberMe = await call("/api/auth/me", { cookie: renewedMemberCookie })
   assert.equal(memberMe.status, 200)
 
-  const promoteMember = await call(`/api/admin/users/${memberId}/role`, {
+  const financeRoleResponse = await call("/api/admin/roles", {
+    method: "POST",
+    cookie: adminCookie,
+    body: {
+      name: "Finance workspace",
+      description: "Dashboard access plus Finance domain access.",
+      grants: ["dashboard:access", "domain:finance:access"],
+    },
+  })
+  assert.equal(financeRoleResponse.status, 201)
+  const financeRole = (await financeRoleResponse.json()) as {
+    role: { id: string }
+  }
+  const initialScopedAssignment = await call(
+    `/api/admin/users/${memberId}/roles`,
+    {
+      method: "PATCH",
+      cookie: adminCookie,
+      body: { roleIds: [financeRole.role.id] },
+    }
+  )
+  assert.equal(initialScopedAssignment.status, 200)
+  const scopedProfile = await call("/api/auth/me", {
+    cookie: renewedMemberCookie,
+  })
+  const scopedProfilePayload = (await scopedProfile.json()) as {
+    user: { permissions: string[] }
+  }
+  assert.ok(
+    scopedProfilePayload.user.permissions.includes("domain:finance:access")
+  )
+  assert.ok(
+    !scopedProfilePayload.user.permissions.includes("domain:developer:access")
+  )
+  assert.ok(!scopedProfilePayload.user.permissions.includes("tools:use"))
+
+  const assignAccessManager = await call(`/api/admin/users/${memberId}/roles`, {
     method: "PATCH",
     cookie: adminCookie,
-    body: { role: "admin" },
+    body: { roleIds: [financeRole.role.id, "access-manager"] },
   })
-  assert.equal(promoteMember.status, 200)
+  assert.equal(assignAccessManager.status, 200)
   const promotedCanAccessAdmin = await call("/api/admin/users", {
     cookie: renewedMemberCookie,
   })
   assert.equal(
     promotedCanAccessAdmin.status,
     200,
-    "role changes take effect from the user store on each request"
+    "role assignments take effect from the database on each request"
   )
 
-  const preventSelfDemotion = await call(`/api/admin/users/${memberId}/role`, {
+  const preventSelfDemotion = await call(`/api/admin/users/${memberId}/roles`, {
     method: "PATCH",
     cookie: renewedMemberCookie,
-    body: { role: "member" },
+    body: { roleIds: [financeRole.role.id] },
   })
   assert.equal(preventSelfDemotion.status, 400)
+
+  const delegatedUserResponse = await call("/api/admin/users", {
+    method: "POST",
+    cookie: renewedMemberCookie,
+    body: {
+      username: "delegated.user",
+      displayName: "Delegated User",
+      temporaryPassword: MEMBER_TEMP_PASSWORD,
+    },
+  })
+  assert.equal(delegatedUserResponse.status, 201)
+  const delegatedUserPayload = (await delegatedUserResponse.json()) as {
+    user: { id: number; roles: Array<{ id: string }>; permissions: string[] }
+  }
+  assert.deepEqual(delegatedUserPayload.user.roles, [])
+  assert.deepEqual(delegatedUserPayload.user.permissions, [])
+  const rolelessLogin = await call("/api/auth/login", {
+    method: "POST",
+    body: { username: "delegated.user", password: MEMBER_TEMP_PASSWORD },
+  })
+  assert.equal(rolelessLogin.status, 200)
+  const rolelessCookie = sessionCookie(rolelessLogin)
+  const rolelessPasswordChange = await call("/api/auth/change-password", {
+    method: "POST",
+    cookie: rolelessCookie,
+    body: { newPassword: MEMBER_NEW_PASSWORD },
+  })
+  assert.equal(rolelessPasswordChange.status, 200)
+  const rolelessReadyCookie = sessionCookie(rolelessPasswordChange)
+  const rolelessAdminAccess = await call("/api/admin/users", {
+    cookie: rolelessReadyCookie,
+  })
+  assert.equal(rolelessAdminAccess.status, 403)
+  const grantFinanceRole = await call(
+    `/api/admin/users/${delegatedUserPayload.user.id}/roles`,
+    {
+      method: "PATCH",
+      cookie: renewedMemberCookie,
+      body: { roleIds: [financeRole.role.id] },
+    }
+  )
+  assert.equal(grantFinanceRole.status, 200)
+  const grantAllTools = await call(
+    `/api/admin/users/${delegatedUserPayload.user.id}/roles`,
+    {
+      method: "PATCH",
+      cookie: renewedMemberCookie,
+      body: { roleIds: ["all-tools-user"] },
+    }
+  )
+  assert.equal(grantAllTools.status, 400)
+  const defineBroaderRole = await call("/api/admin/roles", {
+    method: "POST",
+    cookie: renewedMemberCookie,
+    body: {
+      name: "Escalated role",
+      description: "Must be rejected.",
+      grants: ["tools:use"],
+    },
+  })
+  assert.equal(defineBroaderRole.status, 403)
 
   const passwordReset = await call(
     `/api/admin/users/${memberId}/temporary-password`,

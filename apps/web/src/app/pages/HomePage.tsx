@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
-import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
+import { domains, getDomain, getTool } from "@/shared/config/registry"
 import {
   MAX_PINNED_TOOLS,
   togglePinnedTool,
@@ -17,22 +17,39 @@ import {
 } from "@/shared/services/pinned-tools"
 import type { ToolDefinition } from "@/shared/types/tool"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
+import { useAuth } from "@/app/providers/AuthProvider"
+import { canAccessTool } from "@/shared/types/auth"
 
 type WorkspaceTool = ToolDefinition & { domainId: string; domainName: string }
 
 export function HomePage() {
   const navigate = useNavigate()
+  const { user, authEnabled } = useAuth()
+  const hasToolAccess = (domainId: string, toolId: string) =>
+    !authEnabled || Boolean(user && canAccessTool(user, domainId, toolId))
+  const visibleDomains = domains
+    .map((domain) => ({
+      ...domain,
+      tools: domain.tools.filter((tool) => hasToolAccess(domain.id, tool.id)),
+    }))
+    .filter((domain) => domain.tools.length > 0)
+  const accessibleToolCount = visibleDomains.reduce(
+    (total, domain) => total + domain.tools.length,
+    0
+  )
   const pinnedTools = usePinnedTools()
-  const pinnedEntries = pinnedTools.flatMap((record) => {
-    const domain = getDomain(record.domainId)
-    const tool = getTool(record.domainId, record.toolId)
-    return domain && tool
-      ? [{ ...tool, domainId: domain.id, domainName: domain.name }]
-      : []
-  })
+  const pinnedEntries = pinnedTools
+    .flatMap((record) => {
+      const domain = getDomain(record.domainId)
+      const tool = getTool(record.domainId, record.toolId)
+      return domain && tool
+        ? [{ ...tool, domainId: domain.id, domainName: domain.name }]
+        : []
+    })
+    .filter((tool) => hasToolAccess(tool.domainId, tool.id))
   const stats = [
-    { label: "Domains", value: domains.length, icon: Grid2X2 },
-    { label: "Tools", value: allTools.length, icon: Blocks },
+    { label: "Domains", value: visibleDomains.length, icon: Grid2X2 },
+    { label: "Tools", value: accessibleToolCount, icon: Blocks },
     { label: "Pinned", value: pinnedEntries.length, icon: Star },
   ]
 
@@ -118,7 +135,7 @@ export function HomePage() {
           id="domains-heading"
         />
         <div className="grid gap-4 xl:grid-cols-2">
-          {domains.map((domain) => {
+          {visibleDomains.map((domain) => {
             const DomainIcon = domain.icon
             return (
               <Card

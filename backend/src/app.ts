@@ -7,18 +7,23 @@ import rateLimit from "express-rate-limit"
 import helmet from "helmet"
 import { loadOrbitConfig, type OrbitRuntimeConfig } from "./config.js"
 import {
+  assignRoles,
   activeAdminCount,
   getUserById,
   getUserByUsername,
+  isSystemAdmin,
   type OrbitDatabase,
   type UserRecord,
   toPublicUser,
+  validateRoleSelection,
+  writeAuthorizationAudit,
 } from "./database.js"
 import {
   hashPassword,
   isValidPasswordLength,
   verifyPassword,
 } from "./password.js"
+import { createRolesRouter } from "./roles-router.js"
 import {
   clearSessionCookie,
   createRequireAuth,
@@ -27,7 +32,7 @@ import {
   deleteUserSessions,
   issueSession,
   type AuthenticatedRequest,
-  requireAdmin,
+  requirePermission,
 } from "./sessions.js"
 
 const dummyPasswordHashPromise = hashPassword("orbit-invalid-login-dummy-value")
@@ -86,9 +91,9 @@ function validatePassword(value: unknown): value is string {
   return typeof value === "string" && isValidPasswordLength(value)
 }
 
-function publicAdminUser(user: UserRecord) {
+function publicAdminUser(database: OrbitDatabase, user: UserRecord) {
   return {
-    ...toPublicUser(user),
+    ...toPublicUser(database, user),
     isActive: user.is_active === 1,
     createdAt: user.created_at,
   }
@@ -104,7 +109,9 @@ function getTargetUserId(request: Request) {
 function otherActiveAdminExists(database: OrbitDatabase, userId: number) {
   const row = database
     .prepare(
-      "SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = 1 AND id <> ?"
+      `SELECT COUNT(*) AS count FROM user_roles ur
+       JOIN users u ON u.id = ur.user_id
+       WHERE ur.role_id = 'system-admin' AND u.is_active = 1 AND u.id <> ?`
     )
     .get(userId) as { count: number }
   return row.count > 0
@@ -166,10 +173,17 @@ export function createApp(
   }
   app.use("/api/auth", requireAuthEnabled)
   app.use("/api/admin", requireAuthEnabled)
+  app.use("/api/admin", requireAuth, (request, response, next) => {
+    if (requirePermission(request, response, "dashboard:access")) next()
+  })
+  app.use(
+    "/api/admin",
+    createRolesRouter(database, config.auth.inactivityTimeoutMinutes)
+  )
   app.get("/api/auth/me", requireAuth, (request, response) => {
     const user = (request as AuthenticatedRequest).orbitUser
     if (!user) return sendError(response, 401, "Authentication required.")
-    response.json({ user: toPublicUser(user) })
+    response.json({ user: toPublicUser(database, user) })
   })
 
   app.post(
@@ -197,7 +211,7 @@ export function createApp(
         }
         deleteSession(database, currentSessionToken(request))
         issueSession(database, response, user.id, isProduction)
-        response.json({ user: toPublicUser(user) })
+        response.json({ user: toPublicUser(database, user) })
       } catch (error) {
         next(error)
       }
@@ -254,7 +268,7 @@ export function createApp(
         if (!updatedUser)
           return sendError(response, 401, "Authentication required.")
         issueSession(database, response, user.id, isProduction)
-        response.json({ user: toPublicUser(updatedUser) })
+        response.json({ user: toPublicUser(database, updatedUser) })
       } catch (error) {
         next(error)
       }
@@ -262,16 +276,18 @@ export function createApp(
   )
 
   app.get("/api/admin/users", requireAuth, (request, response) => {
-    if (!requireAdmin(request, response)) return
+    if (!requirePermission(request, response, "users:read")) return
     const users = database
       .prepare("SELECT * FROM users ORDER BY created_at DESC, id DESC")
       .all() as UserRecord[]
-    response.json({ users: users.map(publicAdminUser) })
+    response.json({
+      users: users.map((user) => publicAdminUser(database, user)),
+    })
   })
 
   app.post("/api/admin/users", requireAuth, async (request, response, next) => {
     try {
-      if (!requireAdmin(request, response)) return
+      if (!requirePermission(request, response, "users:create")) return
       if (!isRecord(request.body))
         return sendError(response, 400, "Invalid user request.")
       const username = normalizeUsername(request.body.username)
@@ -280,7 +296,7 @@ export function createApp(
           ? request.body.displayName.trim()
           : ""
       const password = request.body.temporaryPassword
-      const role = request.body.role
+      const roleIds = request.body.roleIds ?? []
       if (!username)
         return sendError(
           response,
@@ -301,8 +317,31 @@ export function createApp(
           "Temporary password must be 12–128 characters."
         )
       }
-      if (role !== "admin" && role !== "member") {
-        return sendError(response, 400, "Choose Admin or Member role.")
+      if (
+        !Array.isArray(roleIds) ||
+        !roleIds.every((roleId) => typeof roleId === "string")
+      )
+        return sendError(
+          response,
+          400,
+          "Role assignments must be a list of role ids."
+        )
+      if (
+        roleIds.length > 0 &&
+        !requirePermission(request, response, "users:assign-roles")
+      )
+        return
+      const actor = (request as AuthenticatedRequest).orbitUser!
+      if (roleIds.length > 0) {
+        try {
+          validateRoleSelection(database, roleIds, actor.id)
+        } catch (error) {
+          return sendError(
+            response,
+            400,
+            error instanceof Error ? error.message : "Invalid role assignment."
+          )
+        }
       }
       if (getUserByUsername(database, username)) {
         return sendError(response, 409, "That username is already in use.")
@@ -311,63 +350,32 @@ export function createApp(
       const passwordHash = await hashPassword(password)
       const result = database
         .prepare(
-          "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, 1, 1, ?, ?)"
+          "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES (?, ?, ?, 'member', 1, 1, ?, ?)"
         )
-        .run(username, displayName, passwordHash, role, now, now)
+        .run(username, displayName, passwordHash, now, now)
       const created = getUserById(database, Number(result.lastInsertRowid))
       if (!created) return sendError(response, 500, "Could not create user.")
-      response.status(201).json({ user: publicAdminUser(created) })
+      if (roleIds.length > 0)
+        assignRoles(database, created.id, roleIds, actor.id)
+      writeAuthorizationAudit(
+        database,
+        actor.id,
+        "user.created",
+        "user",
+        String(created.id),
+        { username, roleIds }
+      )
+      response.status(201).json({ user: publicAdminUser(database, created) })
     } catch (error) {
       next(error)
     }
   })
 
   app.patch(
-    "/api/admin/users/:userId/role",
-    requireAuth,
-    (request, response) => {
-      if (!requireAdmin(request, response)) return
-      const actor = (request as AuthenticatedRequest).orbitUser!
-      const userId = getTargetUserId(request)
-      if (!userId || !isRecord(request.body))
-        return sendError(response, 400, "Invalid role change.")
-      const role = request.body.role
-      if (role !== "admin" && role !== "member")
-        return sendError(response, 400, "Choose Admin or Member role.")
-      if (actor.id === userId && role !== "admin") {
-        return sendError(
-          response,
-          400,
-          "You cannot remove your own administrator access."
-        )
-      }
-      const target = getUserById(database, userId)
-      if (!target) return sendError(response, 404, "User not found.")
-      if (
-        target.role === "admin" &&
-        role === "member" &&
-        target.is_active === 1 &&
-        !otherActiveAdminExists(database, userId)
-      ) {
-        return sendError(
-          response,
-          409,
-          "Orbit must keep at least one active administrator."
-        )
-      }
-      database
-        .prepare("UPDATE users SET role = ?, updated_at = ? WHERE id = ?")
-        .run(role, new Date().toISOString(), userId)
-      const updated = getUserById(database, userId)
-      if (updated) response.json({ user: publicAdminUser(updated) })
-    }
-  )
-
-  app.patch(
     "/api/admin/users/:userId/active",
     requireAuth,
     (request, response) => {
-      if (!requireAdmin(request, response)) return
+      if (!requirePermission(request, response, "users:manage-access")) return
       const actor = (request as AuthenticatedRequest).orbitUser!
       const userId = getTargetUserId(request)
       if (
@@ -387,7 +395,7 @@ export function createApp(
       const target = getUserById(database, userId)
       if (!target) return sendError(response, 404, "User not found.")
       if (
-        target.role === "admin" &&
+        isSystemAdmin(database, userId) &&
         target.is_active === 1 &&
         !request.body.isActive &&
         !otherActiveAdminExists(database, userId)
@@ -403,7 +411,7 @@ export function createApp(
         .run(request.body.isActive ? 1 : 0, new Date().toISOString(), userId)
       if (!request.body.isActive) deleteUserSessions(database, userId)
       const updated = getUserById(database, userId)
-      if (updated) response.json({ user: publicAdminUser(updated) })
+      if (updated) response.json({ user: publicAdminUser(database, updated) })
     }
   )
 
@@ -412,7 +420,8 @@ export function createApp(
     requireAuth,
     async (request, response, next) => {
       try {
-        if (!requireAdmin(request, response)) return
+        if (!requirePermission(request, response, "users:reset-credentials"))
+          return
         const actor = (request as AuthenticatedRequest).orbitUser!
         const userId = getTargetUserId(request)
         if (!userId || !isRecord(request.body))

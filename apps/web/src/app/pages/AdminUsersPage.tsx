@@ -21,16 +21,25 @@ import { Label } from "@workspace/ui/components/label"
 import { KeyRound, RefreshCw, ShieldCheck, UserPlus, Users } from "lucide-react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { requestApi } from "@/shared/services/auth-api"
-import type { ManagedUser, UserRole } from "@/shared/types/auth"
+import type { AccessRole, ManagedUser } from "@/shared/types/auth"
 import { notify } from "@/shared/services/notifications"
 import { branding } from "@/shared/config/orbit-config"
-
-const roleName = (role: UserRole) => (role === "admin" ? "Admin" : "Member")
+import { hasPermission } from "@/shared/types/auth"
 
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth()
+  const canCreateUsers = hasPermission(currentUser, "users:create")
+  const canManageRoles = hasPermission(currentUser, "users:assign-roles")
+  const canReadRoles =
+    canManageRoles || hasPermission(currentUser, "roles:read")
+  const canManageAccess = hasPermission(currentUser, "users:manage-access")
+  const canResetCredentials = hasPermission(
+    currentUser,
+    "users:reset-credentials"
+  )
   const [users, setUsers] = useState<ManagedUser[]>([])
-  const [roleDrafts, setRoleDrafts] = useState<Record<number, UserRole>>({})
+  const [roles, setRoles] = useState<AccessRole[]>([])
+  const [roleDrafts, setRoleDrafts] = useState<Record<number, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState("")
@@ -38,7 +47,7 @@ export function AdminUsersPage() {
   const [username, setUsername] = useState("")
   const [displayName, setDisplayName] = useState("")
   const [temporaryPassword, setTemporaryPassword] = useState("")
-  const [newRole, setNewRole] = useState<UserRole>("member")
+  const [newRoleIds, setNewRoleIds] = useState<string[]>([])
   const [createdCredential, setCreatedCredential] = useState<{
     username: string
     password: string
@@ -53,8 +62,19 @@ export function AdminUsersPage() {
       )
       setUsers(result.users)
       setRoleDrafts(
-        Object.fromEntries(result.users.map((item) => [item.id, item.role]))
+        Object.fromEntries(
+          result.users.map((item) => [
+            item.id,
+            item.roles.map((role) => role.id),
+          ])
+        )
       )
+      if (canReadRoles) {
+        const roleResult = await requestApi<{ roles: AccessRole[] }>(
+          "/api/admin/roles"
+        )
+        setRoles(roleResult.roles)
+      }
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Could not load users."
@@ -62,7 +82,7 @@ export function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canReadRoles])
 
   useEffect(() => {
     // Fetches over the network before state changes; this is not a synchronous cascading update.
@@ -93,7 +113,7 @@ export function AdminUsersPage() {
           body: JSON.stringify({
             username,
             displayName: displayName || username,
-            role: newRole,
+            roleIds: canManageRoles ? newRoleIds : [],
             temporaryPassword,
           }),
         }
@@ -101,7 +121,7 @@ export function AdminUsersPage() {
       setUsers((items) => [result.user, ...items])
       setRoleDrafts((items) => ({
         ...items,
-        [result.user.id]: result.user.role,
+        [result.user.id]: result.user.roles.map((role) => role.id),
       }))
       setCreatedCredential({
         username: result.user.username,
@@ -110,7 +130,7 @@ export function AdminUsersPage() {
       setUsername("")
       setDisplayName("")
       setTemporaryPassword("")
-      setNewRole("member")
+      setNewRoleIds([])
       setNotice(
         `Created ${result.user.username}. Share the temporary password using a trusted channel; ${branding.shortName} will require a change at first sign-in.`
       )
@@ -128,26 +148,25 @@ export function AdminUsersPage() {
   }
 
   const updateRole = async (target: ManagedUser) => {
-    const role = roleDrafts[target.id]
-    if (!role || role === target.role) return
+    const roleIds = roleDrafts[target.id] ?? []
+    const previousRoleIds = target.roles.map((role) => role.id).sort()
+    if (roleIds.slice().sort().join("|") === previousRoleIds.join("|")) return
     setError("")
     setNotice("")
     setBusyId(target.id)
     try {
-      const result = await requestApi<{ user: ManagedUser }>(
-        `/api/admin/users/${target.id}/role`,
+      await requestApi<{ roles: AccessRole[] }>(
+        `/api/admin/users/${target.id}/roles`,
         {
           method: "PATCH",
-          body: JSON.stringify({ role }),
+          body: JSON.stringify({ roleIds }),
         }
       )
-      setUsers((items) =>
-        items.map((item) => (item.id === target.id ? result.user : item))
-      )
-      setNotice(`${target.username} is now ${roleName(role)}.`)
+      await loadUsers()
+      setNotice(`Access roles updated for ${target.username}.`)
       notify.success(
-        "Role updated",
-        `${target.username} is now ${roleName(role)}.`
+        "Access roles updated",
+        `The new grants for ${target.username} are now active.`
       )
     } catch (failure) {
       setError(
@@ -251,101 +270,139 @@ export function AdminUsersPage() {
         <div className="flex items-center gap-2">
           <Users className="size-5 text-primary" />
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Users & roles
+            Users & access
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Provision accounts, assign Admin or Member, and control active access.
-          Members can use all registered tools.
+          Provision accounts, assign one or more access roles, and control
+          active access. Accounts without a dashboard-access role can sign in
+          but cannot enter the workspace.
         </p>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="size-4" />
-              Provision a user
-            </CardTitle>
-            <CardDescription>
-              There is no public sign-up. New accounts receive a temporary
-              password and must change it before using {branding.shortName}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="space-y-4"
-              onSubmit={(event) => void createUser(event)}
-            >
-              <div className="space-y-2">
-                <Label htmlFor="new-username">Username</Label>
-                <Input
-                  id="new-username"
-                  required
-                  minLength={3}
-                  maxLength={40}
-                  pattern="[A-Za-z0-9._-]{3,40}"
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  3–40 letters, numbers, dots, dashes, or underscores.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-display-name">Display name</Label>
-                <Input
-                  id="new-display-name"
-                  maxLength={80}
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="Optional; defaults to username"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-temporary-password">
-                  Temporary password
-                </Label>
-                <Input
-                  id="new-temporary-password"
-                  type="password"
-                  required
-                  minLength={12}
-                  maxLength={128}
-                  autoComplete="new-password"
-                  value={temporaryPassword}
-                  onChange={(event) => setTemporaryPassword(event.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  At least 12 characters; shown once after provisioning so you
-                  can share it securely.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-user-role">Role</Label>
-                <select
-                  id="new-user-role"
-                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm"
-                  value={newRole}
-                  onChange={(event) =>
-                    setNewRole(event.target.value as UserRole)
-                  }
-                >
-                  <option value="member">Member — use all tools</option>
-                  <option value="admin">
-                    Admin — manage users and use all tools
-                  </option>
-                </select>
-              </div>
-              <Button className="w-full" type="submit" disabled={busyId === -1}>
+      <div
+        className={`grid gap-5 ${canCreateUsers ? "xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : "grid-cols-1"}`}
+      >
+        {canCreateUsers && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <UserPlus className="size-4" />
-                {busyId === -1 ? "Provisioning…" : "Provision account"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                Provision a user
+              </CardTitle>
+              <CardDescription>
+                There is no public sign-up. New accounts receive a temporary
+                password and must change it before using {branding.shortName}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="space-y-4"
+                onSubmit={(event) => void createUser(event)}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="new-username">Username</Label>
+                  <Input
+                    id="new-username"
+                    required
+                    minLength={3}
+                    maxLength={40}
+                    pattern="[A-Za-z0-9._-]{3,40}"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    3–40 letters, numbers, dots, dashes, or underscores.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-display-name">Display name</Label>
+                  <Input
+                    id="new-display-name"
+                    maxLength={80}
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="Optional; defaults to username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-temporary-password">
+                    Temporary password
+                  </Label>
+                  <Input
+                    id="new-temporary-password"
+                    type="password"
+                    required
+                    minLength={12}
+                    maxLength={128}
+                    autoComplete="new-password"
+                    value={temporaryPassword}
+                    onChange={(event) =>
+                      setTemporaryPassword(event.target.value)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    At least 12 characters; shown once after provisioning so you
+                    can share it securely.
+                  </p>
+                </div>
+                {canManageRoles && (
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Initial access roles
+                    </legend>
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty for a provisioned account with no dashboard
+                      access.
+                    </p>
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
+                      {roles
+                        .filter((role) => role.isAssignable)
+                        .map((role) => (
+                          <label
+                            key={role.id}
+                            className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 accent-primary"
+                              checked={newRoleIds.includes(role.id)}
+                              onChange={(event) =>
+                                setNewRoleIds((ids) =>
+                                  event.target.checked
+                                    ? [...ids, role.id]
+                                    : ids.filter((id) => id !== role.id)
+                                )
+                              }
+                            />
+                            <span className="min-w-0">
+                              <span className="block font-medium">
+                                {role.name}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                {role.description ||
+                                  `${role.grants.length} grants`}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </fieldset>
+                )}
+                <Button
+                  className="w-full"
+                  type="submit"
+                  disabled={busyId === -1}
+                >
+                  <UserPlus className="size-4" />
+                  {busyId === -1 ? "Provisioning…" : "Provision account"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -356,8 +413,8 @@ export function AdminUsersPage() {
                   Existing accounts
                 </CardTitle>
                 <CardDescription>
-                  Role and active status are enforced by the backend on every
-                  protected request.
+                  Each account action requires its matching capability, enforced
+                  by the backend on every protected request.
                 </CardDescription>
               </div>
               <Button
@@ -390,6 +447,14 @@ export function AdminUsersPage() {
               <div className="space-y-2">
                 {users.map((item) => {
                   const self = item.id === currentUser?.id
+                  const selectedRoleIds =
+                    roleDrafts[item.id] ?? item.roles.map((role) => role.id)
+                  const roleIdsChanged =
+                    selectedRoleIds.slice().sort().join("|") !==
+                    item.roles
+                      .map((role) => role.id)
+                      .sort()
+                      .join("|")
                   return (
                     <div key={item.id} className="rounded-xl border p-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -403,7 +468,10 @@ export function AdminUsersPage() {
                             ) : null}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            @{item.username} · Added{" "}
+                            @{item.username} ·{" "}
+                            {item.roles.map((role) => role.name).join(", ") ||
+                              "No assigned roles"}{" "}
+                            · Added{" "}
                             {new Date(item.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -414,38 +482,57 @@ export function AdminUsersPage() {
                         </span>
                       </div>
                       <div className="mt-3 flex flex-wrap items-end gap-2">
-                        <label className="space-y-1 text-xs text-muted-foreground">
-                          <span>Role</span>
-                          <select
-                            aria-label={`Role for ${item.username}`}
-                            className="block h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-                            disabled={self || busyId === item.id}
-                            value={roleDrafts[item.id] ?? item.role}
-                            onChange={(event) =>
-                              setRoleDrafts((drafts) => ({
-                                ...drafts,
-                                [item.id]: event.target.value as UserRole,
-                              }))
-                            }
-                          >
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            self ||
-                            busyId === item.id ||
-                            roleDrafts[item.id] === item.role
-                          }
-                          onClick={() => void updateRole(item)}
-                        >
-                          Save role
-                        </Button>
-                        {!self && (
+                        {canManageRoles && (
+                          <>
+                            <fieldset
+                              className="flex min-w-0 flex-1 flex-wrap gap-1.5"
+                              disabled={self || busyId === item.id}
+                            >
+                              <legend className="sr-only">
+                                Access roles for {item.username}
+                              </legend>
+                              {roles
+                                .filter((role) => role.isAssignable)
+                                .map((role) => (
+                                  <label
+                                    key={role.id}
+                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted/50"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="accent-primary"
+                                      checked={selectedRoleIds.includes(
+                                        role.id
+                                      )}
+                                      onChange={(event) =>
+                                        setRoleDrafts((drafts) => ({
+                                          ...drafts,
+                                          [item.id]: event.target.checked
+                                            ? [...selectedRoleIds, role.id]
+                                            : selectedRoleIds.filter(
+                                                (id) => id !== role.id
+                                              ),
+                                        }))
+                                      }
+                                    />
+                                    {role.name}
+                                  </label>
+                                ))}
+                            </fieldset>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                self || busyId === item.id || !roleIdsChanged
+                              }
+                              onClick={() => void updateRole(item)}
+                            >
+                              Save role
+                            </Button>
+                          </>
+                        )}
+                        {!self && canResetCredentials && (
                           <Button
                             type="button"
                             variant="outline"
@@ -460,7 +547,7 @@ export function AdminUsersPage() {
                             Reset password
                           </Button>
                         )}
-                        {!self && (
+                        {!self && canManageAccess && (
                           <Button
                             type="button"
                             variant={item.isActive ? "destructive" : "outline"}
