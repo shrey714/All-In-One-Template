@@ -81,6 +81,14 @@ async function main() {
       `import { ${icon} } from "lucide-react"\nimport type { DomainDescriptor } from "@/shared/types/domain"\n\nexport const ${toCamelCase(id)}Domain = {\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${icon},\n  tone: ${JSON.stringify(tone)},\n} satisfies DomainDescriptor\n`
     )
     await writeFile(
+      join(temporary, "config/security.ts"),
+      `/** Domain-level route scope; each tool declares its own data and action contract. */\nexport const domainSecurity = {\n  domainId: ${JSON.stringify(id)},\n  accessGrant: ${JSON.stringify(`domain:${id}:access`)},\n  dataPolicy: "tool-defined",\n  backendPolicy: "tool-defined",\n} as const\n`
+    )
+    await writeFile(
+      join(temporary, "SECURITY.md"),
+      `# ${name} domain security\n\nDomain navigation access is governed by the server-issued \`domain:${id}:access\` grant (or broader dashboard/tool grants). This file documents route scope only. Data ownership, backend dependencies, and sensitive action grants belong in each tool folder's \`config/security.ts\` and \`SECURITY.md\`. Backend APIs must enforce grants independently; frontend filtering is not authorization.\n`
+    )
+    await writeFile(
       join(temporary, "info.html"),
       `<!doctype html>\n<html lang="en">\n  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(name)} domain</title></head>\n  <body>\n    <section aria-labelledby="domain-overview">\n      <h2 id="domain-overview">${escapeHtml(name)}</h2>\n      <p>${escapeHtml(description)}</p>\n      <h3>About this domain</h3>\n      <p>Describe the domain's purpose, data ownership, and the workflows it groups.</p>\n    </section>\n  </body>\n</html>\n`
     )

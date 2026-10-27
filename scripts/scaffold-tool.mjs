@@ -20,16 +20,30 @@ import {
   validateSlug,
   validateText,
 } from "./scaffold-utils.mjs"
+import {
+  createApiRouterSource,
+  createApiTestSource,
+} from "./scaffold-tool-backend.mjs"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const options = ["domain", "id", "name", "description", "icon", "category"]
+const options = [
+  "domain",
+  "id",
+  "name",
+  "description",
+  "icon",
+  "category",
+  "data-scope",
+  "backend",
+  "actions",
+]
 const usage = `Usage:
-  npm run scaffold:tool -- --domain <domain-id> --id <tool-id> --name <Display Name> --description <text> --icon <LucideIcon> [--category <label>]
+  npm run scaffold:tool -- --domain <domain-id> --id <tool-id> --name <Display Name> --description <text> --icon <LucideIcon> --data-scope <none|device|user|workspace> --backend <yes|no> --actions <none|action-id,...> [--category <label>]
 
 Example:
-  npm run scaffold:tool -- --domain finance --id budget-planner --name "Budget planner" --description "Plan recurring spending by category." --icon Wallet --category Planning
+  npm run scaffold:tool -- --domain finance --id budget-planner --name "Budget planner" --description "Plan recurring spending by category." --icon Wallet --category Planning --data-scope user --backend yes --actions export,delete
 
-The command creates a modular tool folder and starter UI. It does not edit the central registry; it prints the required lazy import and registration snippets.`
+Declare actions as stable kebab-case IDs. For backend=no, actions must be none. The command creates a modular tool folder and starter UI; when backend=yes it also creates a protected API router and runnable authorization tests under backend/src. It does not edit the central registry; it prints registration and API mount snippets.`
 
 async function main() {
   const parsed = parseFlags(process.argv.slice(2), options)
@@ -66,6 +80,43 @@ async function main() {
     "Tool category",
     80
   )
+  const dataScope = required(parsed.flags, "data-scope", "--data-scope user")
+  if (!["none", "device", "user", "workspace"].includes(dataScope)) {
+    throw new Error("--data-scope must be none, device, user, or workspace.")
+  }
+  const backendDependency = required(parsed.flags, "backend", "--backend yes")
+  if (!["yes", "no"].includes(backendDependency)) {
+    throw new Error("--backend must be yes or no.")
+  }
+  if (
+    ["user", "workspace"].includes(dataScope) &&
+    backendDependency !== "yes"
+  ) {
+    throw new Error(
+      "User- and workspace-scoped data require --backend yes so ownership can be enforced server-side."
+    )
+  }
+  const actionInput = required(parsed.flags, "actions", "--actions none")
+  const sensitiveActions =
+    actionInput === "none"
+      ? []
+      : [
+          ...new Set(
+            actionInput
+              .split(",")
+              .map((action) =>
+                validateSlug(action.trim(), "Sensitive action id")
+              )
+          ),
+        ]
+  if (actionInput !== "none" && sensitiveActions.length === 0) {
+    throw new Error("--actions must be none or a comma-separated action list.")
+  }
+  if (backendDependency === "no" && sensitiveActions.length > 0) {
+    throw new Error(
+      "Sensitive actions require --backend yes so grants can be enforced at the API boundary."
+    )
+  }
   const componentBaseName = toPascalCase(id)
   const componentName = componentBaseName.endsWith("Tool")
     ? componentBaseName
@@ -78,6 +129,8 @@ async function main() {
   const toolsRoot = join(domainRoot, "tools")
   const domainMetadataPath = join(domainRoot, "config/domain.ts")
   const destination = join(toolsRoot, id)
+  const backendDestination = join(root, "backend/src/tools", domainId, id)
+  const backendTestPath = join(root, "backend/src", `${domainId}-${id}.test.ts`)
   let temporary
   let destinationReserved = false
 
@@ -87,6 +140,19 @@ async function main() {
     throw new Error(
       `Domain '${domainId}' does not exist or has no config/domain.ts. Scaffold and register the domain first.`
     )
+  }
+
+  if (backendDependency === "yes") {
+    for (const path of [backendDestination, backendTestPath]) {
+      try {
+        await access(path)
+        throw new Error(
+          `Backend tool scaffold already exists: ${relative(root, path)}`
+        )
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error
+      }
+    }
   }
 
   try {
@@ -116,13 +182,24 @@ async function main() {
       "}",
       "",
     ].join("\n")
-    await writeFile(
-      join(temporary, `${componentName}.tsx`),
-      componentSource
-    )
+    await writeFile(join(temporary, `${componentName}.tsx`), componentSource)
     await writeFile(
       join(temporary, "config/metadata.ts"),
       `export const toolMetadata = {\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  category: ${JSON.stringify(category)},\n  href: ${JSON.stringify(`/domains/${domainId}/tools/${id}`)},\n} as const\n`
+    )
+    await writeFile(
+      join(temporary, "config/security.ts"),
+      `/** Review and update this contract whenever data storage or privileged behavior changes. */\nexport const toolSecurity = {\n  dataScope: ${JSON.stringify(dataScope)},\n  backendRequired: ${backendDependency === "yes"},\n  sensitiveActions: ${JSON.stringify(sensitiveActions)},\n  sensitiveActionGrants: ${JSON.stringify(
+        sensitiveActions.map(
+          (action) => `feature:${domainId}/${id}/${id}:${action}`
+        ),
+        null,
+        2
+      )},\n  toolAccessGrant: ${JSON.stringify(`tool:${domainId}/${id}:access`)},\n} as const\n`
+    )
+    await writeFile(
+      join(temporary, "SECURITY.md"),
+      `# ${name}: security and data contract\n\n- **Data scope:** ${dataScope}\n- **Backend dependency:** ${backendDependency}\n- **Sensitive actions:** ${sensitiveActions.length ? sensitiveActions.join(", ") : "none declared"}\n\nDocument storage location, retention, export/deletion behavior, and whether data is shared. This declaration is review metadata, not enforcement by itself. For protected data or actions, enforce grants in backend routes and test allowed, denied, and anonymous requests. Never rely on hidden frontend controls for authorization.\n`
     )
     await writeFile(
       join(temporary, "info.html"),
@@ -134,6 +211,27 @@ async function main() {
       await rename(join(temporary, entry), join(destination, entry))
     }
     await rm(temporary, { recursive: true, force: true })
+    if (backendDependency === "yes") {
+      await mkdir(backendDestination, { recursive: true })
+      await writeFile(
+        join(backendDestination, "router.ts"),
+        createApiRouterSource({
+          domainId,
+          id,
+          componentName,
+          actions: sensitiveActions,
+        })
+      )
+      await writeFile(
+        backendTestPath,
+        createApiTestSource({
+          domainId,
+          id,
+          componentName,
+          actions: sensitiveActions,
+        })
+      )
+    }
   } catch (error) {
     if (temporary) await rm(temporary, { recursive: true, force: true })
     if (destinationReserved)
@@ -159,8 +257,13 @@ async function main() {
   console.log(
     `\n3. ${existingPlannedTool ? "Replace the existing plannedTool entry in place (do not create a duplicate)" : `Add this entry to registeredTools[${JSON.stringify(domainId)}]; replace an existing same-domain entry with this id instead of duplicating it`}:\n{\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${icon},\n  href: ${JSON.stringify(`/domains/${domainId}/tools/${id}`)},\n  category: ${JSON.stringify(category)},\n  component: ${componentName},\n}`
   )
+  if (backendDependency === "yes") {
+    console.log(
+      `\n4. Mount the generated API router in backend/src/app.ts:\nimport { create${componentName}Api } from "./tools/${domainId}/${id}/router.js"\napp.use("/api/tools/${domainId}/${id}", create${componentName}Api(database, config.auth.inactivityTimeoutMinutes))\n\nGenerated HTTP boundary test: ${relative(root, backendTestPath)}`
+    )
+  }
   console.log(
-    `\nThen run npm run lint --workspace=web, npm run typecheck --workspace=web, and npm run build --workspace=web. Confirm the imported icon exists in lucide-react and keep access checks on the backend for any protected data/API.`
+    `\nThen run npm run lint --workspace=web, npm run typecheck --workspace=web, and npm run build --workspace=web${backendDependency === "yes" ? "; also run npm run lint --prefix backend, npm run typecheck --prefix backend, and npm test --prefix backend" : ""}. Confirm the imported icon exists in lucide-react and never treat UI visibility as security enforcement.`
   )
 }
 
