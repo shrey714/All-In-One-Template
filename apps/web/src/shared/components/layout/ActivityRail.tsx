@@ -4,6 +4,7 @@ import {
   Command,
   FolderTree,
   HelpCircle,
+  Inbox,
   Moon,
   Pin,
   Settings2,
@@ -11,7 +12,9 @@ import {
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "@/app/providers"
+import { useAuth } from "@/app/providers/AuthProvider"
 import { AccountMenu } from "@/shared/components/layout/AccountMenu"
+import { orbitConfig } from "@/shared/config/orbit-config"
 import type { SidebarView } from "@/shared/types/workspace"
 
 export type { SidebarView } from "@/shared/types/workspace"
@@ -21,12 +24,14 @@ type Props = {
   onSettings: () => void
   onHelp: () => void
   sidebarVisible: boolean
+  unreadCount: number
 }
 
 const views = [
   { id: "explorer", label: "Explorer", icon: FolderTree },
   { id: "pinned", label: "Pinned tools", icon: Pin },
   { id: "recent", label: "Recent tools", icon: Clock3 },
+  { id: "inbox", label: "Inbox", icon: Inbox },
 ] as const
 
 export function ActivityRail({
@@ -35,8 +40,14 @@ export function ActivityRail({
   onSettings,
   onHelp,
   sidebarVisible,
+  unreadCount,
 }: Props) {
   const { theme, setTheme } = useTheme()
+  const { authEnabled, user } = useAuth()
+  const inboxAvailable =
+    orbitConfig.notifications.enabled &&
+    authEnabled &&
+    Boolean(user && !user.mustChangePassword)
   const ThemeIcon = theme === "dark" ? Sun : Moon
 
   return (
@@ -54,24 +65,42 @@ export function ActivityRail({
         <Command className="size-4" />
       </Link>
       <div className="flex flex-col items-center gap-1.5">
-        {views.map(({ id, label, icon: Icon }) => (
-          <Button
-            key={id}
-            variant="ghost"
-            size="icon"
-            title={label}
-            aria-label={label}
-            aria-pressed={view === id}
-            onClick={() => onViewChange(id)}
-            className={
-              view === id
-                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-                : "text-muted-foreground"
-            }
-          >
-            <Icon className="size-4" />
-          </Button>
-        ))}
+        {views
+          .filter(({ id }) => id !== "inbox" || inboxAvailable)
+          .map(({ id, label, icon: Icon }) => (
+            <Button
+              key={id}
+              variant="ghost"
+              size="icon"
+              title={
+                id === "inbox" && unreadCount > 0
+                  ? `${label} · ${unreadCount} unread`
+                  : label
+              }
+              aria-label={
+                id === "inbox" && unreadCount > 0
+                  ? `${label}, ${unreadCount} unread`
+                  : label
+              }
+              aria-pressed={view === id}
+              onClick={() => onViewChange(id)}
+              className={`relative ${
+                view === id
+                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="size-4" />
+              {id === "inbox" && unreadCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-0.5 grid min-h-3.5 min-w-3.5 place-items-center rounded-full bg-primary px-0.5 text-[8px] leading-none text-primary-foreground"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Button>
+          ))}
       </div>
       <span className="flex-1" />
       <div className="flex flex-col items-center gap-1 border-t border-border/70 pt-2">

@@ -31,7 +31,7 @@ There is no public signup endpoint. Authorized administrators provision accounts
 
 See [the dynamic RBAC model](docs/architecture/rbac.md) for built-in roles, dashboard/domain/tool/feature scopes, role delegation safeguards, and backend authorization rules. See the [domain and tool onboarding guide](docs/guides/adding-domains-and-tools.md) for setup, module ownership, scaffolding, data-scope selection, protected API implementation, integration tests, and a release checklist.
 
-Global authentication behavior is configured in the repository-root `orbit.config.json`. Set `auth.enabled` to `false` to allow dashboard access without sign-in; this makes the workspace available to anyone who can reach it, so use that only on a trusted/private network. Set `auth.inactivityTimeoutMinutes` to the desired idle duration (or `0` to disable idle expiry while leaving authentication enabled). `auth.warningBeforeTimeoutSeconds` controls how early the “Still there?” popup appears. Frontend config is embedded at Vite startup/build and backend config is read at backend startup, so restart Vite and the backend after changing these values. Keep the frontend and backend on the same root config for consistent behavior.
+Global authentication behavior is configured in the repository-root `orbit.config.json`. Set `auth.enabled` to `false` to allow dashboard access without sign-in; this makes the workspace available to anyone who can reach it, so use that only on a trusted/private network. Set `auth.inactivityTimeoutMinutes` to the desired idle duration (or `0` to disable idle expiry while leaving authentication enabled). `auth.warningBeforeTimeoutSeconds` controls how early the “Still there?” popup appears. Set `notifications.enabled` to `false` to disable the optional persistent Inbox and its API. Frontend config is embedded at Vite startup/build and backend config is read at backend startup, so restart Vite and the backend after changing these values. Keep the frontend and backend on the same root config for consistent behavior. See the [Inbox architecture](docs/architecture/notification-inbox.md) for a local UI test command, user isolation, producer usage, and API behavior.
 
 ```bash
 npm run build --workspace=web
@@ -56,7 +56,7 @@ Brand configuration is build-time frontend configuration: restart the Vite dev s
 ## Workspace experience
 
 - Floating, VS Code-inspired work surface with distinct activity rail, explorer, draggable divider, toolbar, content pane, and status bar.
-- The activity rail switches the sidebar between **Explorer**, **Pinned**, and **Recent** views. Domain groups can collapse, and the divider supports drag and keyboard resizing.
+- The activity rail switches the sidebar between **Explorer**, **Pinned**, **Recent**, and the authenticated **Inbox** view. Inbox retains per-account tool/workspace messages with unread and priority filters, safe deep links, mark-read, archive/restore, and an unread badge. Domain groups can collapse, and the divider supports drag and keyboard resizing.
 - Collapse the sidebar to icon-only navigation for the currently selected view; the sidebar width, view, and collapsed state persist locally.
 - Light, dark, and system themes; compact layout and status-bar controls; settings persist locally.
 - One global search/command palette in the toolbar (`⌘K` / `Ctrl+K`); the sidebar filter is intentionally scoped to its selected view. Shortcut help (`?`), sidebar toggle (`⌘B` / `Ctrl+B`), and settings (`⌘,` / `Ctrl+,`) each have a single primary control.

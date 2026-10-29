@@ -24,6 +24,7 @@ import {
   verifyPassword,
 } from "./password.js"
 import { createRolesRouter } from "./roles-router.js"
+import { createNotificationsRouter } from "./notifications-router.js"
 import {
   clearSessionCookie,
   createRequireAuth,
@@ -162,6 +163,7 @@ export function createApp(
         inactivityTimeoutMinutes: config.auth.inactivityTimeoutMinutes,
         warningBeforeTimeoutSeconds: config.auth.warningBeforeTimeoutSeconds,
       },
+      notifications: { enabled: config.notifications.enabled },
     })
   })
   const requireAuthEnabled: RequestHandler = (_request, response, next) => {
@@ -173,6 +175,18 @@ export function createApp(
   }
   app.use("/api/auth", requireAuthEnabled)
   app.use("/api/admin", requireAuthEnabled)
+  app.use("/api/notifications", (_request, response, next) => {
+    if (!config.notifications.enabled) {
+      sendError(response, 404, "Persistent notifications are disabled.")
+      return
+    }
+    next()
+  })
+  app.use("/api/notifications", requireAuthEnabled)
+  app.use(
+    "/api/notifications",
+    createNotificationsRouter(database, config.auth.inactivityTimeoutMinutes)
+  )
   app.use("/api/admin", requireAuth, (request, response, next) => {
     if (requirePermission(request, response, "dashboard:access")) next()
   })

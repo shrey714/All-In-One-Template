@@ -8,6 +8,7 @@ export type OrbitRuntimeConfig = {
     inactivityTimeoutMinutes: number
     warningBeforeTimeoutSeconds: number
   }
+  notifications: { enabled: boolean }
 }
 
 const configPath = process.env.ORBIT_CONFIG_PATH
@@ -20,6 +21,7 @@ const defaults: OrbitRuntimeConfig = {
     inactivityTimeoutMinutes: 30,
     warningBeforeTimeoutSeconds: 60,
   },
+  notifications: { enabled: true },
 }
 
 export function loadOrbitConfig(): OrbitRuntimeConfig {
@@ -69,7 +71,23 @@ export function loadOrbitConfig(): OrbitRuntimeConfig {
       "auth.warningBeforeTimeoutSeconds must be an integer from 10 to 300."
     )
   }
+  const rawNotifications = (parsed as Record<string, unknown>).notifications
+  if (
+    rawNotifications !== undefined &&
+    (typeof rawNotifications !== "object" ||
+      rawNotifications === null ||
+      Array.isArray(rawNotifications))
+  ) {
+    throw new Error("notifications must be an object.")
+  }
+  const notificationsEnabled =
+    (rawNotifications as Record<string, unknown> | undefined)?.enabled ??
+    defaults.notifications.enabled
+  if (typeof notificationsEnabled !== "boolean") {
+    throw new Error("notifications.enabled must be true or false.")
+  }
   return {
     auth: { enabled, inactivityTimeoutMinutes, warningBeforeTimeoutSeconds },
+    notifications: { enabled: notificationsEnabled },
   }
 }

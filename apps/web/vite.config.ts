@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
-const orbitConfig: unknown = JSON.parse(
+const parsedOrbitConfig: unknown = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../orbit.config.json"), "utf8")
 )
 
@@ -13,6 +13,25 @@ type RecordValue = Record<string, unknown>
 function isRecord(value: unknown): value is RecordValue {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
+
+function normalizeNotificationsConfig(value: unknown): RecordValue {
+  if (!isRecord(value)) throw new Error("orbit.config.json must be an object.")
+  const rawNotifications = value.notifications
+  if (rawNotifications !== undefined && !isRecord(rawNotifications)) {
+    throw new Error("orbit.config.json notifications must be an object.")
+  }
+  const enabled = isRecord(rawNotifications)
+    ? (rawNotifications.enabled ?? true)
+    : true
+  if (typeof enabled !== "boolean") {
+    throw new Error(
+      "orbit.config.json notifications.enabled must be true or false."
+    )
+  }
+  return { ...value, notifications: { enabled } }
+}
+
+const orbitConfig: RecordValue = normalizeNotificationsConfig(parsedOrbitConfig)
 
 function requiredText(source: RecordValue, key: string, maxLength: number) {
   const value = source[key]

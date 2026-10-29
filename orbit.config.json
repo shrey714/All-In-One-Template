@@ -4,6 +4,9 @@
     "inactivityTimeoutMinutes": 10,
     "warningBeforeTimeoutSeconds": 60
   },
+  "notifications": {
+    "enabled": true
+  },
   "branding": {
     "shortName": "Orbit",
     "productName": "Orbit Workspace",

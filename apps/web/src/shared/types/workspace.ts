@@ -1,1 +1,1 @@
-export type SidebarView = "explorer" | "pinned" | "recent"
+export type SidebarView = "explorer" | "pinned" | "recent" | "inbox"

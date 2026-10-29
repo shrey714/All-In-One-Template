@@ -133,6 +133,24 @@ When you select a backend dependency:
 4. Mount the router in `backend/src/app.ts` at the printed `/api/tools/<domain>/<tool>` path using the existing database and configured inactivity timeout. Confirm the import path and middleware order in the current app.
 5. Extend the generated test or add tests for every route and data boundary. Test an anonymous request (401), a signed-in account without the grant (403), an authorized account, malformed input, cross-user/workspace access denial, and mutation/audit behavior as relevant.
 
+### Send an update to the persistent Inbox
+
+When a backend operation should leave a durable user-facing update, import `createPersistentNotification` from `backend/src/notifications-store.ts` and call it from the protected server operation after deriving the recipient from the authenticated session. Example:
+
+```ts
+createPersistentNotification(database, {
+  recipientUserId: authenticatedUser.id, // server-derived; never request.body.userId
+  title: "Export is ready",
+  body: "Your monthly report is available.",
+  priority: false,
+  href: "/domains/finance/tools/monthly-report?tab=exports",
+  sourceDomainId: "finance",
+  sourceToolId: "monthly-report",
+})
+```
+
+The helper validates bounded plain text, a same-origin root-relative link, and kebab-case source IDs. The Inbox API exposes list/filter/pagination, mark read/unread, mark all read, and archive/restore operations; it deliberately has no browser-facing create endpoint. Records are scoped in SQLite to the recipient user and all read/mutation queries include that server-authenticated user ID. Add tests proving another account receives neither the record nor a successful mutation response. Notifications are optional through root `orbit.config.json` → `notifications.enabled` (default `true`); frontend and backend must use the same config and be restarted/rebuilt after changes. See [the notification Inbox architecture](../architecture/notification-inbox.md) for API fields, behavior, and limits.
+
 The generated integration test uses Orbit's actual session and grant middleware with an in-memory SQLite database and HTTP requests. Its baseline checks that anonymous requests receive 401, authenticated users without grants receive 403, and authorized requests pass the guard (the unimplemented placeholder then returns 501). Keep generated tests in `backend/src/` with the `.test.ts` suffix; `npm test --prefix backend` compiles and runs `dist/*.test.js`.
 
 Do not place an API key or other secret in frontend code, the security manifest, a URL, local storage, or `info.html`. Use server environment variables or a secret manager for credentials, and restrict external network access to the minimum required destinations.

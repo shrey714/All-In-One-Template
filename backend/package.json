@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src",
     "bootstrap:admin": "tsx src/bootstrap-admin.ts",
+    "notification:test": "tsx src/create-test-notification.ts",
     "test": "npm run build --silent && node --test dist/*.test.js"
   },
   "dependencies": {

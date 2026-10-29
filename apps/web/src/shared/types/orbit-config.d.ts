@@ -7,6 +7,7 @@ declare global {
       inactivityTimeoutMinutes: number
       warningBeforeTimeoutSeconds: number
     }
+    notifications: { enabled: boolean }
     branding: {
       shortName: string
       productName: string

@@ -82,6 +82,23 @@ export function openDatabase(path = resolve(dataDirectory, "orbit.sqlite")) {
     );
     CREATE INDEX IF NOT EXISTS authorization_audit_created_idx
       ON authorization_audit(created_at);
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      priority INTEGER NOT NULL DEFAULT 0 CHECK (priority IN (0, 1)),
+      href TEXT,
+      source_domain_id TEXT,
+      source_tool_id TEXT,
+      created_at TEXT NOT NULL,
+      read_at TEXT,
+      archived_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS user_notifications_recipient_idx
+      ON user_notifications(recipient_user_id, id DESC);
+    CREATE INDEX IF NOT EXISTS user_notifications_unread_idx
+      ON user_notifications(recipient_user_id, archived_at, read_at);
   `)
   seedBuiltInRoles(database)
   if (path !== ":memory:") chmodSync(path, 0o600)

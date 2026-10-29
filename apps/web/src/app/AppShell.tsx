@@ -329,7 +329,10 @@ export function AppShell() {
               width={renderedWidth}
               activityRailVisible={activityRailVisible}
               sidebarVisible={sidebarVisible}
-              onViewChange={setSidebarView}
+              onViewChange={(nextView) => {
+                setSidebarView(nextView)
+                setSidebarVisible(true)
+              }}
               onSettings={openSettings}
               onHelp={openHelp}
             />

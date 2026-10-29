@@ -4,6 +4,7 @@ import test, { after, before } from "node:test"
 import Database from "better-sqlite3"
 import { createApp } from "./app.js"
 import { establishSystemAdmin, openDatabase } from "./database.js"
+import { createPersistentNotification } from "./notifications-store.js"
 import { hashPassword } from "./password.js"
 import { hashSessionToken } from "./sessions.js"
 
@@ -444,6 +445,7 @@ test("disabling auth disables sign-in and administrative endpoints", async () =>
         inactivityTimeoutMinutes: 30,
         warningBeforeTimeoutSeconds: 60,
       },
+      notifications: { enabled: true },
     })
   )
   await new Promise<void>((resolve) =>
@@ -466,6 +468,259 @@ test("disabling auth disables sign-in and administrative endpoints", async () =>
     assert.equal(login.status, 404)
     const adminUsers = await fetch(`${origin}/api/admin/users`)
     assert.equal(adminUsers.status, 404)
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      disabledServer.close((error) => (error ? reject(error) : resolve()))
+    )
+  }
+})
+
+test("persistent inbox is authenticated, user-isolated, filterable, and mutable only by its owner", async () => {
+  const anonymous = await call("/api/notifications")
+  assert.equal(anonymous.status, 401)
+
+  const adminLogin = await call("/api/auth/login", {
+    method: "POST",
+    body: { username: "rootadmin", password: ADMIN_PASSWORD },
+  })
+  assert.equal(adminLogin.status, 200)
+  const adminCookie = sessionCookie(adminLogin)
+  const admin = database
+    .prepare("SELECT id FROM users WHERE username = 'rootadmin'")
+    .get() as { id: number }
+
+  const otherPassword = "Inbox-member-Password-8901"
+  const otherHash = await hashPassword(otherPassword)
+  const now = new Date().toISOString()
+  const otherUser = database
+    .prepare(
+      "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES ('inbox.other', 'Inbox Other', ?, 'member', 1, 0, ?, ?)"
+    )
+    .run(otherHash, now, now)
+  const otherUserId = Number(otherUser.lastInsertRowid)
+  database
+    .prepare(
+      "INSERT INTO user_roles (user_id, role_id, assigned_at) VALUES (?, 'dashboard-access', ?)"
+    )
+    .run(otherUserId, now)
+
+  try {
+    const first = createPersistentNotification(database, {
+      recipientUserId: admin.id,
+      title: "Invoice ready",
+      body: "Your Finance report is ready to review.",
+      priority: true,
+      href: "/domains/finance/tools/emi-calculator?amount=1000",
+      sourceDomainId: "finance",
+      sourceToolId: "emi-calculator",
+    })
+    const second = createPersistentNotification(database, {
+      recipientUserId: admin.id,
+      title: "Workspace digest",
+      body: "Two updates were posted.",
+    })
+    createPersistentNotification(database, {
+      recipientUserId: otherUserId,
+      title: "Private to another account",
+    })
+
+    assert.throws(
+      () =>
+        createPersistentNotification(database, {
+          recipientUserId: admin.id,
+          title: "Unsafe external action",
+          href: "https://example.com/redirect",
+        }),
+      /same-origin/
+    )
+    assert.throws(
+      () =>
+        createPersistentNotification(database, {
+          recipientUserId: admin.id,
+          title: "Unsafe protocol-relative action",
+          href: "//example.com/path",
+        }),
+      /same-origin/
+    )
+
+    const firstPage = await call("/api/notifications?limit=1", {
+      cookie: adminCookie,
+    })
+    assert.equal(firstPage.status, 200)
+    const firstPayload = (await firstPage.json()) as {
+      items: Array<{ id: number; priority: boolean; href: string | null }>
+      unreadCount: number
+      hasMore: boolean
+      nextCursor: number | null
+    }
+    assert.equal(firstPayload.items.length, 1)
+    assert.equal(firstPayload.items[0]?.id, second.id)
+    assert.equal(firstPayload.unreadCount, 2)
+    assert.equal(firstPayload.hasMore, true)
+    assert.ok(firstPayload.nextCursor)
+
+    const secondPage = await call(
+      `/api/notifications?limit=1&cursor=${firstPayload.nextCursor}`,
+      { cookie: adminCookie }
+    )
+    const secondPayload = (await secondPage.json()) as {
+      items: Array<{ id: number; priority: boolean; href: string | null }>
+      hasMore: boolean
+    }
+    assert.equal(secondPage.status, 200)
+    assert.equal(secondPayload.items[0]?.id, first.id)
+    assert.equal(secondPayload.items[0]?.priority, true)
+    assert.equal(
+      secondPayload.items[0]?.href,
+      "/domains/finance/tools/emi-calculator?amount=1000"
+    )
+    assert.equal(secondPayload.hasMore, false)
+
+    const invalidFilter = await call("/api/notifications?filter=everything", {
+      cookie: adminCookie,
+    })
+    assert.equal(invalidFilter.status, 400)
+    const invalidCursor = await call("/api/notifications?cursor=-1", {
+      cookie: adminCookie,
+    })
+    assert.equal(invalidCursor.status, 400)
+
+    const unread = await call("/api/notifications?filter=unread", {
+      cookie: adminCookie,
+    })
+    assert.equal(
+      ((await unread.json()) as { items: unknown[] }).items.length,
+      2
+    )
+    const priority = await call("/api/notifications?filter=priority", {
+      cookie: adminCookie,
+    })
+    assert.equal(
+      ((await priority.json()) as { items: unknown[] }).items.length,
+      1
+    )
+
+    const otherLogin = await call("/api/auth/login", {
+      method: "POST",
+      body: { username: "inbox.other", password: otherPassword },
+    })
+    assert.equal(otherLogin.status, 200)
+    const otherCookie = sessionCookie(otherLogin)
+    const otherRead = await call("/api/notifications", { cookie: otherCookie })
+    const otherPayload = (await otherRead.json()) as {
+      items: Array<{ title: string }>
+      unreadCount: number
+    }
+    assert.equal(otherPayload.items.length, 1)
+    assert.equal(otherPayload.items[0]?.title, "Private to another account")
+    assert.equal(otherPayload.unreadCount, 1)
+
+    const crossUserRead = await call(`/api/notifications/${first.id}/read`, {
+      method: "PATCH",
+      cookie: otherCookie,
+      body: { read: true },
+    })
+    assert.equal(crossUserRead.status, 404)
+    const crossUserArchive = await call(
+      `/api/notifications/${first.id}/archive`,
+      { method: "PATCH", cookie: otherCookie, body: { archived: true } }
+    )
+    assert.equal(crossUserArchive.status, 404)
+
+    const markRead = await call(`/api/notifications/${first.id}/read`, {
+      method: "PATCH",
+      cookie: adminCookie,
+      body: { read: true },
+    })
+    assert.equal(markRead.status, 200)
+    assert.equal(
+      ((await markRead.json()) as { unreadCount: number }).unreadCount,
+      1
+    )
+    const markAll = await call("/api/notifications/read-all", {
+      method: "POST",
+      cookie: adminCookie,
+      body: {},
+    })
+    assert.equal(markAll.status, 200)
+    assert.equal(
+      ((await markAll.json()) as { unreadCount: number }).unreadCount,
+      0
+    )
+
+    const archive = await call(`/api/notifications/${second.id}/archive`, {
+      method: "PATCH",
+      cookie: adminCookie,
+      body: { archived: true },
+    })
+    assert.equal(archive.status, 200)
+    const archived = await call("/api/notifications?filter=archived", {
+      cookie: adminCookie,
+    })
+    const archivedItems = (await archived.json()) as {
+      items: Array<{ id: number; archivedAt: string | null }>
+    }
+    assert.ok(archivedItems.items.some((item) => item.id === second.id))
+    assert.ok(archivedItems.items.every((item) => item.archivedAt !== null))
+
+    const restore = await call(`/api/notifications/${second.id}/archive`, {
+      method: "PATCH",
+      cookie: adminCookie,
+      body: { archived: false },
+    })
+    assert.equal(restore.status, 200)
+    const restoredPage = await call("/api/notifications", {
+      cookie: adminCookie,
+    })
+    const restored = (await restoredPage.json()) as {
+      items: Array<{ id: number; archivedAt: string | null }>
+    }
+    assert.ok(
+      restored.items.some(
+        (item) => item.id === second.id && item.archivedAt === null
+      )
+    )
+  } finally {
+    database.prepare("DELETE FROM users WHERE id = ?").run(otherUserId)
+    database
+      .prepare("DELETE FROM user_notifications WHERE recipient_user_id = ?")
+      .run(admin.id)
+  }
+})
+
+test("persistent inbox routes are disabled by the root notifications flag", async () => {
+  const adminLogin = await call("/api/auth/login", {
+    method: "POST",
+    body: { username: "rootadmin", password: ADMIN_PASSWORD },
+  })
+  assert.equal(adminLogin.status, 200)
+  const adminCookie = sessionCookie(adminLogin)
+  const disabledServer = createServer(
+    createApp(database, {
+      auth: {
+        enabled: true,
+        inactivityTimeoutMinutes: 30,
+        warningBeforeTimeoutSeconds: 60,
+      },
+      notifications: { enabled: false },
+    })
+  )
+  await new Promise<void>((resolve) =>
+    disabledServer.listen(0, "127.0.0.1", resolve)
+  )
+  try {
+    const address = disabledServer.address()
+    assert.ok(address && typeof address !== "string")
+    const origin = `http://127.0.0.1:${address.port}`
+    const configResponse = await fetch(`${origin}/api/config`)
+    const config = (await configResponse.json()) as {
+      notifications: { enabled: boolean }
+    }
+    assert.equal(config.notifications.enabled, false)
+    const inbox = await fetch(`${origin}/api/notifications`, {
+      headers: { Cookie: adminCookie },
+    })
+    assert.equal(inbox.status, 404)
   } finally {
     await new Promise<void>((resolve, reject) =>
       disabledServer.close((error) => (error ? reject(error) : resolve()))

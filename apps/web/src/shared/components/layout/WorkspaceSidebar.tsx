@@ -9,6 +9,7 @@ import {
   Clock3,
   FolderTree,
   Info,
+  Inbox,
   MoreHorizontal,
   Pin,
   Search,
@@ -37,6 +38,9 @@ import { ToolInfoSheet } from "@/shared/components/layout/ToolInfoSheet"
 import { AppIcon } from "@/shared/components/display/AppIcon"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { canAccessTool } from "@/shared/types/auth"
+import { orbitConfig } from "@/shared/config/orbit-config"
+import { useNotificationInbox } from "@/shared/hooks/useNotificationInbox"
+import { NotificationInboxPanel } from "@/shared/components/layout/NotificationInboxPanel"
 import {
   MAX_PINNED_TOOLS,
   togglePinnedTool,
@@ -95,6 +99,14 @@ export function WorkspaceSidebar({
   onHelp,
 }: Props) {
   const { user, authEnabled } = useAuth()
+  const notificationsAvailable =
+    orbitConfig.notifications.enabled &&
+    authEnabled &&
+    Boolean(user && !user.mustChangePassword)
+  const inbox = useNotificationInbox({
+    enabled: notificationsAvailable,
+    userId: notificationsAvailable ? (user?.id ?? null) : null,
+  })
   const hasToolAccess = (tool: { domainId: string; id: string }) =>
     !authEnabled || Boolean(user && canAccessTool(user, tool.domainId, tool.id))
   const pinnedTools = usePinnedTools()
@@ -102,7 +114,7 @@ export function WorkspaceSidebar({
   const recentTools = useRecentTools()
   const [filterQueries, setFilterQueries] = useState<
     Record<SidebarView, string>
-  >({ explorer: "", pinned: "", recent: "" })
+  >({ explorer: "", pinned: "", recent: "", inbox: "" })
   const [searchExpanded, setSearchExpanded] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const [collapsedDomains, setCollapsedDomains] = useState<string[]>([])
@@ -124,7 +136,9 @@ export function WorkspaceSidebar({
       ? pinnedEntries
       : view === "recent"
         ? recentEntries
-        : explorerEntries
+        : view === "inbox"
+          ? []
+          : explorerEntries
   const visibleViewEntries = query
     ? viewEntries.filter((tool) => includesQuery(tool, query))
     : viewEntries
@@ -174,9 +188,17 @@ export function WorkspaceSidebar({
       ? "Pinned tools"
       : view === "recent"
         ? "Recent tools"
-        : "Explorer"
+        : view === "inbox"
+          ? "Inbox"
+          : "Explorer"
   const HeadingIcon =
-    view === "pinned" ? Star : view === "recent" ? Clock3 : FolderTree
+    view === "pinned"
+      ? Star
+      : view === "recent"
+        ? Clock3
+        : view === "inbox"
+          ? Inbox
+          : FolderTree
   const frameClass = `flex h-full min-h-0 shrink-0 overflow-hidden`
   const activityRail = activityRailVisible ? (
     <ActivityRail
@@ -185,6 +207,7 @@ export function WorkspaceSidebar({
       onSettings={onSettings}
       onHelp={onHelp}
       sidebarVisible={sidebarVisible}
+      unreadCount={inbox.unreadCount}
     />
   ) : null
 
@@ -243,75 +266,93 @@ export function WorkspaceSidebar({
               aria-label={heading}
               className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-1.5 pb-1.5"
             >
-              {view === "explorer"
-                ? domains.map((domain) => {
-                    const tools = shortcuts.filter(
-                      (tool) => tool.domainId === domain.id
-                    )
-                    if (!tools.length) return null
-                    return (
-                      <section
-                        key={domain.id}
-                        aria-label={`${domain.name} tools`}
-                        className="flex w-full shrink-0 flex-col items-center gap-1 rounded-sm border border-border/80 bg-muted/20 p-1"
-                      >
-                        <NavLink
-                          to={`/domains/${domain.id}`}
-                          end
-                          title={`${domain.name} domain`}
-                          aria-label={`${domain.name} domain`}
-                          className={({ isActive }) =>
-                            `flex h-7 w-full items-center justify-center gap-1 rounded-md text-[8px] font-semibold tracking-wide transition-colors ${isActive ? "text-primary" : "text-muted-foreground/80 hover:text-foreground"}`
-                          }
-                        >
-                          <AppIcon icon={domain.icon} className="size-3.5" />
-                        </NavLink>
-                        <div className="flex w-full flex-col items-center gap-1">
-                          {tools.map((tool) => {
-                            const favorite = isToolFavorite(favoriteTools, {
-                              domainId: tool.domainId,
-                              toolId: tool.id,
-                            })
-                            return (
-                              <NavLink
-                                key={`${tool.domainId}:${tool.id}`}
-                                to={tool.href}
-                                title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
-                                aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
-                                className={({ isActive }) =>
-                                  `relative grid size-8 shrink-0 place-items-center rounded-sm border transition-colors ${isActive ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-background hover:text-foreground"}`
-                                }
-                              >
-                                <AppIcon icon={tool.icon} className="size-4" />
-                                {favorite && <FavoriteDot compact />}
-                              </NavLink>
-                            )
-                          })}
-                        </div>
-                      </section>
-                    )
-                  })
-                : shortcuts.map((tool) => {
-                    const favorite = isToolFavorite(favoriteTools, {
-                      domainId: tool.domainId,
-                      toolId: tool.id,
-                    })
-                    return (
+              {view === "inbox" ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  title={`Open Inbox${inbox.unreadCount ? ` · ${inbox.unreadCount} unread` : ""}`}
+                  aria-label={`Open Inbox${inbox.unreadCount ? `, ${inbox.unreadCount} unread` : ""}`}
+                  onClick={onToggle}
+                  className="relative grid size-10 shrink-0 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <Inbox className="size-4" />
+                  {inbox.unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 grid min-h-3.5 min-w-3.5 place-items-center rounded-full bg-primary px-0.5 text-[8px] leading-none text-primary-foreground">
+                      {inbox.unreadCount > 99 ? "99+" : inbox.unreadCount}
+                    </span>
+                  )}
+                </Button>
+              ) : view === "explorer" ? (
+                domains.map((domain) => {
+                  const tools = shortcuts.filter(
+                    (tool) => tool.domainId === domain.id
+                  )
+                  if (!tools.length) return null
+                  return (
+                    <section
+                      key={domain.id}
+                      aria-label={`${domain.name} tools`}
+                      className="flex w-full shrink-0 flex-col items-center gap-1 rounded-sm border border-border/80 bg-muted/20 p-1"
+                    >
                       <NavLink
-                        key={`${tool.domainId}:${tool.id}`}
-                        to={tool.href}
-                        title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
-                        aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
+                        to={`/domains/${domain.id}`}
+                        end
+                        title={`${domain.name} domain`}
+                        aria-label={`${domain.name} domain`}
                         className={({ isActive }) =>
-                          `relative grid size-10 shrink-0 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+                          `flex h-7 w-full items-center justify-center gap-1 rounded-md text-[8px] font-semibold tracking-wide transition-colors ${isActive ? "text-primary" : "text-muted-foreground/80 hover:text-foreground"}`
                         }
                       >
-                        <AppIcon icon={tool.icon} className="size-4" />
-                        {favorite && <FavoriteDot compact />}
+                        <AppIcon icon={domain.icon} className="size-3.5" />
                       </NavLink>
-                    )
-                  })}
-              {!shortcuts.length && (
+                      <div className="flex w-full flex-col items-center gap-1">
+                        {tools.map((tool) => {
+                          const favorite = isToolFavorite(favoriteTools, {
+                            domainId: tool.domainId,
+                            toolId: tool.id,
+                          })
+                          return (
+                            <NavLink
+                              key={`${tool.domainId}:${tool.id}`}
+                              to={tool.href}
+                              title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
+                              aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
+                              className={({ isActive }) =>
+                                `relative grid size-8 shrink-0 place-items-center rounded-sm border transition-colors ${isActive ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-background hover:text-foreground"}`
+                              }
+                            >
+                              <AppIcon icon={tool.icon} className="size-4" />
+                              {favorite && <FavoriteDot compact />}
+                            </NavLink>
+                          )
+                        })}
+                      </div>
+                    </section>
+                  )
+                })
+              ) : (
+                shortcuts.map((tool) => {
+                  const favorite = isToolFavorite(favoriteTools, {
+                    domainId: tool.domainId,
+                    toolId: tool.id,
+                  })
+                  return (
+                    <NavLink
+                      key={`${tool.domainId}:${tool.id}`}
+                      to={tool.href}
+                      title={`${tool.domainName} · ${tool.name}${favorite ? " · Favorite" : ""}`}
+                      aria-label={`${tool.domainName}: ${tool.name}${favorite ? ", favorite" : ""}`}
+                      className={({ isActive }) =>
+                        `relative grid size-10 shrink-0 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+                      }
+                    >
+                      <AppIcon icon={tool.icon} className="size-4" />
+                      {favorite && <FavoriteDot compact />}
+                    </NavLink>
+                  )
+                })
+              )}
+              {!shortcuts.length && view !== "inbox" && (
                 <span
                   title={
                     view === "pinned"
@@ -324,7 +365,7 @@ export function WorkspaceSidebar({
                 </span>
               )}
             </nav>
-            {view === "explorer" && (
+            {(view === "explorer" || view === "inbox") && (
               <ScrollEdgeShadows
                 showTop={scrollEdges.top}
                 showBottom={scrollEdges.bottom}
@@ -366,8 +407,19 @@ export function WorkspaceSidebar({
         className="group/sidebar flex shrink-0 flex-col overflow-hidden rounded-md border transition-[width] duration-100 ease-out motion-reduce:transition-none"
       >
         <div className="flex w-full shrink-0 items-center justify-end gap-1 px-1 py-1">
+          {view === "inbox" && (
+            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 px-2 text-xs font-medium">
+              <Inbox className="size-3.5 shrink-0 text-primary" />
+              <span className="truncate">Inbox</span>
+              {inbox.unreadCount > 0 && (
+                <span className="ml-auto shrink-0 text-[10px] font-normal text-muted-foreground tabular-nums">
+                  {inbox.unreadCount} unread
+                </span>
+              )}
+            </div>
+          )}
           <div
-            className={`group/search relative flex h-8 min-w-8 items-center rounded-md transition-[flex,width] duration-200 ${searchExpanded || filterQuery ? "flex-1" : "w-8"}`}
+            className={`${view === "inbox" ? "hidden" : "group/search relative flex h-8 min-w-8 items-center rounded-md transition-[flex,width] duration-200"} ${searchExpanded || filterQuery ? "flex-1" : "w-8"}`}
             onMouseEnter={() => setSearchExpanded(true)}
             onMouseLeave={closeSearchOnLeave}
           >
@@ -484,7 +536,35 @@ export function WorkspaceSidebar({
             ref={scrollAreaRef}
             className="h-full min-h-0 overflow-y-auto px-2 pb-2"
           >
-            {view === "explorer" ? (
+            {view === "inbox" ? (
+              <NotificationInboxPanel
+                available={notificationsAvailable}
+                unavailableMessage={
+                  !orbitConfig.notifications.enabled
+                    ? "The inbox is disabled in orbit.config.json."
+                    : !authEnabled
+                      ? "Enable authentication to use a persistent, account-scoped inbox."
+                      : "Sign in and complete any required password change to access your inbox."
+                }
+                notifications={inbox.notifications}
+                unreadCount={inbox.unreadCount}
+                filter={inbox.filter}
+                onFilterChange={inbox.setFilter}
+                loading={inbox.loading}
+                loadingMore={inbox.loadingMore}
+                hasMore={inbox.hasMore}
+                error={inbox.error}
+                onRetry={() => void inbox.refresh()}
+                onLoadMore={() => void inbox.loadMore()}
+                onToggleRead={(notification) =>
+                  void inbox.toggleRead(notification)
+                }
+                onMarkAllRead={() => void inbox.markAllRead()}
+                onToggleArchived={(notification) =>
+                  void inbox.toggleArchived(notification)
+                }
+              />
+            ) : view === "explorer" ? (
               <nav aria-label="Domains and tools" className="space-y-0.5">
                 {visiblePinnedEntries.length > 0 && (
                   <section
@@ -634,7 +714,7 @@ export function WorkspaceSidebar({
               </nav>
             )}
           </div>
-          {view === "explorer" && (
+          {(view === "explorer" || view === "inbox") && (
             <ScrollEdgeShadows
               showTop={scrollEdges.top}
               showBottom={scrollEdges.bottom}
