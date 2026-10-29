@@ -21,9 +21,7 @@ import {
   Scale,
   Terminal,
   Timer,
-  Wallet,
   Wrench,
-  Zap,
 } from "lucide-react"
 import { EmiCalculatorSettingsPanel } from "@/domains/finance/tools/emi-calculator/EmiCalculatorSettingsPanel"
 import {
@@ -43,6 +41,11 @@ import type {
   ToolDefinition,
 } from "@/shared/types/tool"
 export type { DomainDefinition } from "@/shared/types/domain"
+export type {
+  IconComponent,
+  IconSource,
+  ImageIconSource,
+} from "@/shared/types/icon"
 export type {
   ToolAvailability,
   ToolAvailabilityState,
@@ -148,7 +151,11 @@ const registeredTools: Record<string, ToolDefinition[]> = {
       id: "emi-calculator",
       name: "EMI calculator",
       description: "Estimate monthly loan payments and total interest.",
-      icon: Calculator,
+      icon: {
+        type: "image",
+        src: "/icons/emi-calculator.svg",
+        fallback: Calculator,
+      },
       href: "/domains/finance/tools/emi-calculator",
       category: "Calculators",
       component: EmiCalculator,
@@ -361,7 +368,11 @@ const additionalPlannedTools: Record<string, ToolDefinition[]> = {
       "Markdown preview",
       "Preview Markdown documents with a clean rendered view.",
       "Documentation",
-      FileText
+      {
+        type: "image",
+        src: "https://cdn.simpleicons.org/markdown/16a34a",
+        fallback: FileText,
+      }
     ),
     plannedTool(
       "developer",
@@ -487,9 +498,9 @@ export const getDomain = (domainId: string) =>
 export const getTool = (domainId: string, toolId: string) =>
   getDomain(domainId)?.tools.find((tool) => tool.id === toolId)
 export const domainIcons = {
-  finance: Wallet,
-  productivity: Zap,
-  health: HeartPulse,
-  developer: Code2,
-  utilities: Wrench,
+  finance: financeDomain.icon,
+  productivity: productivityDomain.icon,
+  health: healthDomain.icon,
+  developer: developerDomain.icon,
+  utilities: utilitiesDomain.icon,
 }

@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react"
+import { useState } from "react"
 import { Search, Settings2 } from "lucide-react"
 import {
   Dialog,
@@ -22,6 +22,8 @@ import type {
   ToolSettingsPanelDefinition,
 } from "@/shared/types/tool"
 import { branding } from "@/shared/config/orbit-config"
+import { AppIcon } from "@/shared/components/display/AppIcon"
+import type { IconSource } from "@/shared/types/icon"
 
 const scopeLabels: Record<SettingsScope, string> = {
   user: "User",
@@ -35,14 +37,13 @@ type Props = Omit<DashboardSettingsContext, "theme" | "setTheme"> & {
   toolDomainId?: string
 }
 
-type IconComponent = ComponentType<{ className?: string }>
 type RegisteredTool = (typeof allTools)[number]
 type NavigationSection = {
   id: string
   label: string
   description: string
   scope: SettingsScope
-  icon: IconComponent
+  icon: IconSource
   fields?: SettingsCategoryDefinition["fields"]
   toolPage?: ToolSettingsPanelDefinition
   tool?: RegisteredTool
@@ -319,7 +320,6 @@ function SectionButton({
   nested?: boolean
   onClick: () => void
 }) {
-  const Icon = section.icon
   return (
     <button
       type="button"
@@ -327,7 +327,7 @@ function SectionButton({
       onClick={onClick}
       className={`flex min-h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${nested ? "ml-2 w-[calc(100%-0.5rem)]" : ""} ${selected ? "bg-accent font-medium text-accent-foreground" : "text-foreground hover:bg-muted"}`}
     >
-      <Icon className="size-3.5 shrink-0" />
+      <AppIcon icon={section.icon} className="size-3.5 shrink-0" />
       <span className="truncate">{section.label}</span>
     </button>
   )

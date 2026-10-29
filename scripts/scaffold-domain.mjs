@@ -14,19 +14,22 @@ import {
   required,
   toCamelCase,
   validateIcon,
+  validateImageIcon,
   validateSlug,
   validateText,
 } from "./scaffold-utils.mjs"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const options = ["id", "name", "description", "icon", "tone"]
+const options = ["id", "name", "description", "icon", "icon-type", "tone"]
 const usage = `Usage:
-  npm run scaffold:domain -- --id <kebab-case-id> --name <Display Name> --description <text> --icon <LucideIcon> [--tone <token>]
+  npm run scaffold:domain -- --id <kebab-case-id> --name <Display Name> --description <text> --icon <LucideIcon|image-source> [--icon-type lucide|image] [--tone <token>]
 
 Example:
   npm run scaffold:domain -- --id customer-support --name "Customer Support" --description "Support workflows and customer insights." --icon Headphones --tone cyan
+  npm run scaffold:domain -- --id customer-support --name "Customer Support" --description "Support workflows and customer insights." --icon /brand/support.svg --icon-type image --tone cyan
+  npm run scaffold:domain -- --id customer-support --name "Customer Support" --description "Support workflows and customer insights." --icon https://cdn.example.com/support.png --icon-type image --tone cyan
 
-The command creates a domain module only. It does not edit the central registry; it prints the required registration steps after scaffolding.`
+For local images, place the file under apps/web/public and use its root-relative public path. Remote icons must use HTTPS. The command creates a domain module only; it does not edit the central registry.`
 
 async function main() {
   const parsed = parseFlags(process.argv.slice(2), options)
@@ -53,7 +56,21 @@ async function main() {
     "Domain description",
     500
   )
-  const icon = validateIcon(required(parsed.flags, "icon", "--icon BarChart3"))
+  const iconType = parsed.flags["icon-type"]?.trim() || "lucide"
+  if (!["lucide", "image"].includes(iconType)) {
+    throw new Error("--icon-type must be lucide or image.")
+  }
+  const iconInput = required(parsed.flags, "icon", "--icon BarChart3")
+  const icon =
+    iconType === "lucide"
+      ? validateIcon(iconInput)
+      : await validateImageIcon(iconInput, join(root, "apps/web/public"))
+  const iconExpression =
+    iconType === "lucide"
+      ? icon
+      : `{ type: "image", src: ${JSON.stringify(icon)} }`
+  const iconImport =
+    iconType === "lucide" ? `import { ${icon} } from "lucide-react"\n` : ""
   const tone = parsed.flags.tone?.trim() || "violet"
   if (tone.length > 32 || !/^[a-z][a-z0-9-]*$/.test(tone)) {
     throw new Error("Tone must be a lowercase token such as violet or cyan.")
@@ -78,7 +95,7 @@ async function main() {
     }
     await writeFile(
       join(temporary, "config/domain.ts"),
-      `import { ${icon} } from "lucide-react"\nimport type { DomainDescriptor } from "@/shared/types/domain"\n\nexport const ${toCamelCase(id)}Domain = {\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${icon},\n  tone: ${JSON.stringify(tone)},\n} satisfies DomainDescriptor\n`
+      `${iconImport}import type { DomainDescriptor } from "@/shared/types/domain"\n\nexport const ${toCamelCase(id)}Domain = {\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${iconExpression},\n  tone: ${JSON.stringify(tone)},\n} satisfies DomainDescriptor\n`
     )
     await writeFile(
       join(temporary, "config/security.ts"),
@@ -127,7 +144,7 @@ async function main() {
     `\n3. Add the domain to the exported domains list:\n{ ...${moduleName}, tools: registeredTools[${JSON.stringify(id)}] },`
   )
   console.log(
-    `\n4. Add its icon to domainIcons:\n[${JSON.stringify(id)}]: ${icon},`
+    `\n4. Add its icon to domainIcons:\n[${JSON.stringify(id)}]: ${iconExpression},`
   )
   console.log(
     "\nThen run npm run lint --workspace=web, npm run typecheck --workspace=web, and npm run build --workspace=web."

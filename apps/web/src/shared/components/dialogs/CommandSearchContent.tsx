@@ -15,6 +15,7 @@ import {
   CommandShortcut,
 } from "@workspace/ui/components/command"
 import { domains } from "@/shared/config/registry"
+import { AppIcon } from "@/shared/components/display/AppIcon"
 
 type Props = {
   onClose: () => void
@@ -52,28 +53,26 @@ export function CommandSearchContent({ onClose, onOpenSettings }: Props) {
           </CommandItem>
         </CommandGroup>
         {domains.map((domain) => {
-          const DomainIcon = domain.icon
           return (
             <CommandGroup key={domain.id} heading={domain.name}>
               <CommandItem
                 value={`${domain.name} ${domain.description}`}
                 onSelect={() => go(`/domains/${domain.id}`)}
               >
-                <DomainIcon />
+                <AppIcon icon={domain.icon} className="size-4" />
                 {domain.name}
                 <CommandShortcut>
                   <ArrowRight className="size-3" />
                 </CommandShortcut>
               </CommandItem>
               {domain.tools.map((tool) => {
-                const ToolIcon = tool.icon
                 return (
                   <CommandItem
                     key={tool.id}
                     value={`${domain.name} ${tool.name} ${tool.description}`}
                     onSelect={() => go(tool.href)}
                   >
-                    <ToolIcon />
+                    <AppIcon icon={tool.icon} className="size-4" />
                     {tool.name}
                     <CommandShortcut>{domain.name}</CommandShortcut>
                   </CommandItem>

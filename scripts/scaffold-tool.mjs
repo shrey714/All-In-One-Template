@@ -17,6 +17,7 @@ import {
   required,
   toPascalCase,
   validateIcon,
+  validateImageIcon,
   validateSlug,
   validateText,
 } from "./scaffold-utils.mjs"
@@ -32,18 +33,20 @@ const options = [
   "name",
   "description",
   "icon",
+  "icon-type",
   "category",
   "data-scope",
   "backend",
   "actions",
 ]
 const usage = `Usage:
-  npm run scaffold:tool -- --domain <domain-id> --id <tool-id> --name <Display Name> --description <text> --icon <LucideIcon> --data-scope <none|device|user|workspace> --backend <yes|no> --actions <none|action-id,...> [--category <label>]
+  npm run scaffold:tool -- --domain <domain-id> --id <tool-id> --name <Display Name> --description <text> --icon <LucideIcon|image-source> [--icon-type lucide|image] --data-scope <none|device|user|workspace> --backend <yes|no> --actions <none|action-id,...> [--category <label>]
 
 Example:
   npm run scaffold:tool -- --domain finance --id budget-planner --name "Budget planner" --description "Plan recurring spending by category." --icon Wallet --category Planning --data-scope user --backend yes --actions export,delete
+  npm run scaffold:tool -- --domain finance --id budget-planner --name "Budget planner" --description "Plan recurring spending by category." --icon /brand/budget.svg --icon-type image --data-scope user --backend yes --actions export,delete
 
-Declare actions as stable kebab-case IDs. For backend=no, actions must be none. The command creates a modular tool folder and starter UI; when backend=yes it also creates a protected API router and runnable authorization tests under backend/src. It does not edit the central registry; it prints registration and API mount snippets.`
+Lucide is the default icon type. For local images, place the file under apps/web/public and use its root-relative public path. Remote icons must use HTTPS. Declare actions as stable kebab-case IDs. For backend=no, actions must be none. The command creates a modular tool folder and starter UI; when backend=yes it also creates a protected API router and runnable authorization tests under backend/src. It does not edit the central registry; it prints registration and API mount snippets.`
 
 async function main() {
   const parsed = parseFlags(process.argv.slice(2), options)
@@ -74,7 +77,19 @@ async function main() {
     "Tool description",
     500
   )
-  const icon = validateIcon(required(parsed.flags, "icon", "--icon Wallet"))
+  const iconType = parsed.flags["icon-type"]?.trim() || "lucide"
+  if (!["lucide", "image"].includes(iconType)) {
+    throw new Error("--icon-type must be lucide or image.")
+  }
+  const iconInput = required(parsed.flags, "icon", "--icon Wallet")
+  const icon =
+    iconType === "lucide"
+      ? validateIcon(iconInput)
+      : await validateImageIcon(iconInput, join(root, "apps/web/public"))
+  const iconExpression =
+    iconType === "lucide"
+      ? icon
+      : `{ type: "image", src: ${JSON.stringify(icon)} }`
   const category = validateText(
     parsed.flags.category?.trim() || "General",
     "Tool category",
@@ -250,12 +265,16 @@ async function main() {
   ).test(registryText)
   console.log(`Created ${relative(root, destination)}`)
   console.log(`\nRegister in apps/web/src/shared/config/registry.tsx:\n`)
-  console.log(`1. Icon import:\nimport { ${icon} } from "lucide-react"`)
+  console.log(
+    iconType === "lucide"
+      ? `1. Icon import:\nimport { ${icon} } from "lucide-react"`
+      : `1. Image icon source:\n${icon}`
+  )
   console.log(
     `\n2. Lazy component (near the other lazy imports):\nconst ${componentName} = lazy(() =>\n  import("${importPath}").then(\n    (module) => ({ default: module.${componentName} })\n  )\n)`
   )
   console.log(
-    `\n3. ${existingPlannedTool ? "Replace the existing plannedTool entry in place (do not create a duplicate)" : `Add this entry to registeredTools[${JSON.stringify(domainId)}]; replace an existing same-domain entry with this id instead of duplicating it`}:\n{\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${icon},\n  href: ${JSON.stringify(`/domains/${domainId}/tools/${id}`)},\n  category: ${JSON.stringify(category)},\n  component: ${componentName},\n}`
+    `\n3. ${existingPlannedTool ? "Replace the existing plannedTool entry in place (do not create a duplicate)" : `Add this entry to registeredTools[${JSON.stringify(domainId)}]; replace an existing same-domain entry with this id instead of duplicating it`}:\n{\n  id: ${JSON.stringify(id)},\n  name: ${JSON.stringify(name)},\n  description: ${JSON.stringify(description)},\n  icon: ${iconExpression},\n  href: ${JSON.stringify(`/domains/${domainId}/tools/${id}`)},\n  category: ${JSON.stringify(category)},\n  component: ${componentName},\n}`
   )
   if (backendDependency === "yes") {
     console.log(
@@ -263,7 +282,7 @@ async function main() {
     )
   }
   console.log(
-    `\nThen run npm run lint --workspace=web, npm run typecheck --workspace=web, and npm run build --workspace=web${backendDependency === "yes" ? "; also run npm run lint --prefix backend, npm run typecheck --prefix backend, and npm test --prefix backend" : ""}. Confirm the imported icon exists in lucide-react and never treat UI visibility as security enforcement.`
+    `\nThen run npm run lint --workspace=web, npm run typecheck --workspace=web, and npm run build --workspace=web${backendDependency === "yes" ? "; also run npm run lint --prefix backend, npm run typecheck --prefix backend, and npm test --prefix backend" : ""}. Confirm the ${iconType === "lucide" ? "imported Lucide icon exists" : "image URL is HTTPS or the local file is committed under apps/web/public"} and never treat UI visibility as security enforcement.`
   )
 }
 

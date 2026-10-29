@@ -6,6 +6,7 @@ import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailabilit
 import { getDomain } from "@/shared/config/registry"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { canAccessTool } from "@/shared/types/auth"
+import { AppIcon } from "@/shared/components/display/AppIcon"
 
 export function DomainLandingPage() {
   const { domainId = "" } = useParams()
@@ -17,14 +18,12 @@ export function DomainLandingPage() {
         (tool) => user && canAccessTool(user, domain.id, tool.id)
       )
     : domain.tools
-  const Icon = domain.icon
-
   return (
     <div className="space-y-7">
       <section className="overflow-hidden rounded-2xl border bg-card">
         <div className="flex flex-wrap items-center gap-4 border-b bg-muted/30 p-6 md:p-8">
           <span className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
-            <Icon className="size-6" />
+            <AppIcon icon={domain.icon} className="size-6" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold tracking-[.15em] text-primary uppercase">
@@ -52,13 +51,12 @@ export function DomainLandingPage() {
           {visibleTools.length ? (
             <div className="grid gap-3 md:grid-cols-2">
               {visibleTools.map((tool) => {
-                const ToolIcon = tool.icon
                 return (
                   <Link key={tool.id} to={tool.href} className="group">
                     <Card className="h-full transition-colors group-hover:border-primary/40 group-hover:bg-primary/[.02]">
                       <CardContent className="flex items-center gap-3 p-4">
                         <span className="grid size-10 place-items-center rounded-xl bg-muted text-foreground">
-                          <ToolIcon className="size-4" />
+                          <AppIcon icon={tool.icon} className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2 text-sm font-medium">

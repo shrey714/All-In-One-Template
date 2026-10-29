@@ -34,6 +34,7 @@ import { allTools, domains, getDomain, getTool } from "@/shared/config/registry"
 import type { ToolDefinition } from "@/shared/types/tool"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 import { ToolInfoSheet } from "@/shared/components/layout/ToolInfoSheet"
+import { AppIcon } from "@/shared/components/display/AppIcon"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { canAccessTool } from "@/shared/types/auth"
 import {
@@ -248,7 +249,6 @@ export function WorkspaceSidebar({
                       (tool) => tool.domainId === domain.id
                     )
                     if (!tools.length) return null
-                    const DomainIcon = domain.icon
                     return (
                       <section
                         key={domain.id}
@@ -261,14 +261,13 @@ export function WorkspaceSidebar({
                           title={`${domain.name} domain`}
                           aria-label={`${domain.name} domain`}
                           className={({ isActive }) =>
-                            `flex h-6 w-full items-center justify-center gap-1 rounded-md text-[8px] font-semibold tracking-wide transition-colors ${isActive ? "text-primary" : "text-muted-foreground/80 hover:text-foreground"}`
+                            `flex h-7 w-full items-center justify-center gap-1 rounded-md text-[8px] font-semibold tracking-wide transition-colors ${isActive ? "text-primary" : "text-muted-foreground/80 hover:text-foreground"}`
                           }
                         >
-                          <DomainIcon className="size-3.5" />
+                          <AppIcon icon={domain.icon} className="size-3.5" />
                         </NavLink>
                         <div className="flex w-full flex-col items-center gap-1">
                           {tools.map((tool) => {
-                            const Icon = tool.icon
                             const favorite = isToolFavorite(favoriteTools, {
                               domainId: tool.domainId,
                               toolId: tool.id,
@@ -283,7 +282,7 @@ export function WorkspaceSidebar({
                                   `relative grid size-8 shrink-0 place-items-center rounded-sm border transition-colors ${isActive ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-background hover:text-foreground"}`
                                 }
                               >
-                                <Icon className="size-4" />
+                                <AppIcon icon={tool.icon} className="size-4" />
                                 {favorite && <FavoriteDot compact />}
                               </NavLink>
                             )
@@ -293,7 +292,6 @@ export function WorkspaceSidebar({
                     )
                   })
                 : shortcuts.map((tool) => {
-                    const Icon = tool.icon
                     const favorite = isToolFavorite(favoriteTools, {
                       domainId: tool.domainId,
                       toolId: tool.id,
@@ -308,7 +306,7 @@ export function WorkspaceSidebar({
                           `relative grid size-10 shrink-0 place-items-center rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
                         }
                       >
-                        <Icon className="size-4" />
+                        <AppIcon icon={tool.icon} className="size-4" />
                         {favorite && <FavoriteDot compact />}
                       </NavLink>
                     )
@@ -515,7 +513,6 @@ export function WorkspaceSidebar({
                   </section>
                 )}
                 {filteredDomains.map(({ domain, tools, domainMatches }) => {
-                  const DomainIcon = domain.icon
                   const isCollapsed =
                     collapsedDomains.includes(domain.id) && !query
                   return (
@@ -528,7 +525,10 @@ export function WorkspaceSidebar({
                             `group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md pr-2 pl-1 text-xs font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-primary"}`
                           }
                         >
-                          <DomainIcon className="size-3.5 shrink-0 transition-colors group-hover:text-primary group-[.active]:text-primary" />
+                          <AppIcon
+                            icon={domain.icon}
+                            className="size-3.5 shrink-0 transition-colors group-hover:text-primary group-[.active]:text-primary"
+                          />
                           <span className="min-w-0 flex-1 truncate underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-current group-[.active]:font-semibold group-[.active]:underline group-[.active]:decoration-current">
                             {domain.name}
                           </span>
@@ -687,7 +687,6 @@ function ToolRow({
   onInfo: (tool: WorkspaceTool) => void
   detail?: string
 }) {
-  const Icon = tool.icon
   const pinInput = {
     domainId: tool.domainId,
     toolId: tool.id,
@@ -701,7 +700,7 @@ function ToolRow({
           `ml-2 flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md border-l-2 px-2 text-[11px] transition-colors ${isActive ? "border-primary/60 bg-primary/10 font-medium text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`
         }
       >
-        <Icon className="size-3.5 shrink-0" />
+        <AppIcon icon={tool.icon} className="size-3.5 shrink-0" />
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="min-w-0 flex-1 truncate">{tool.name}</span>
           {favorite && <FavoriteDot />}

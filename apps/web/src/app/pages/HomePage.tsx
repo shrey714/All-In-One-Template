@@ -19,6 +19,7 @@ import type { ToolDefinition } from "@/shared/types/tool"
 import { ToolAvailabilityBadge } from "@/shared/components/tools/ToolAvailability"
 import { useAuth } from "@/app/providers/AuthProvider"
 import { canAccessTool } from "@/shared/types/auth"
+import { AppIcon } from "@/shared/components/display/AppIcon"
 
 type WorkspaceTool = ToolDefinition & { domainId: string; domainName: string }
 
@@ -136,7 +137,6 @@ export function HomePage() {
         />
         <div className="grid gap-4 xl:grid-cols-2">
           {visibleDomains.map((domain) => {
-            const DomainIcon = domain.icon
             return (
               <Card
                 key={domain.id}
@@ -145,7 +145,7 @@ export function HomePage() {
                 <CardContent className="p-0">
                   <div className="flex items-center gap-3 border-b px-4 py-4">
                     <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                      <DomainIcon className="size-4" />
+                      <AppIcon icon={domain.icon} className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate text-sm font-semibold">
@@ -252,7 +252,6 @@ function ToolActionRow({
   pinLimitReached: boolean
   onOpen: () => void
 }) {
-  const Icon = tool.icon
   return (
     <div className="flex min-w-0 items-center gap-1 px-1">
       <Button
@@ -261,7 +260,7 @@ function ToolActionRow({
         onClick={onOpen}
       >
         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground">
-          <Icon className="size-4" />
+          <AppIcon icon={tool.icon} className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-1.5">

@@ -1,4 +1,5 @@
 import type { ComponentType } from "react"
+import type { IconSource } from "@/shared/types/icon"
 
 export type ToolContext = { domainId: string; toolId: string; stepId?: string }
 export type ToolPanelDefinition = {
@@ -37,7 +38,7 @@ export type ToolDefinition = {
   id: string
   name: string
   description: string
-  icon: ComponentType<{ className?: string }>
+  icon: IconSource
   href: string
   category: string
   component: ComponentType<ToolContext>

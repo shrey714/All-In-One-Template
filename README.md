@@ -78,6 +78,15 @@ npm run scaffold:domain -- --id customer-support --name "Customer Support" --des
 npm run scaffold:tool -- --domain customer-support --id response-library --name "Response library" --description "Organize reusable support responses." --icon BookOpen --category Writing --data-scope workspace --backend yes --actions export,delete
 ```
 
+Keep using a Lucide icon by default, or choose an image icon for either scaffold:
+
+```bash
+npm run scaffold:domain -- --id customer-support --name "Customer Support" --description "Support workflows and customer insights." --icon /brand/support.svg --icon-type image
+npm run scaffold:tool -- --domain customer-support --id response-library --name "Response library" --description "Organize reusable support responses." --icon https://cdn.example.com/response-library.png --icon-type image --data-scope workspace --backend yes --actions export,delete
+```
+
+For a local image, commit the file under `apps/web/public/` and pass its root-relative path (for example `/brand/support.svg`). Remote image icons must use HTTPS. Orbit displays images with `object-contain`, avoids sending a referrer, and falls back to a Lucide image icon when loading fails. Remote hosts receive the browser's image request; use trusted stable URLs and allow the relevant host in your frontend host's `img-src` Content Security Policy when one is configured.
+
 The domain must be scaffolded first. Each command supports `--help`, validates IDs and required fields, refuses to overwrite existing folders, and prints copyable registration steps for `apps/web/src/shared/config/registry.tsx`; it deliberately does not rewrite that critical registry automatically. Existing domains and tools now follow the same module layout as new scaffolds. Each domain has `config/security.ts` and `SECURITY.md`; each tool has `components`, `config`, `hooks`, `services`, `types`, and `utils`, plus its own security manifest and guide. Tool scaffolding requires explicit `--data-scope none|device|user|workspace`, `--backend yes|no`, and `--actions none|action-id,...` choices. User- and workspace-scoped data must select `--backend yes`; sensitive actions also require a backend. It writes a `config/security.ts` declaration and `SECURITY.md` checklist; when a backend is selected, it also generates protected API-route and HTTP integration-test examples under `backend/src`. Apply the printed mount snippet, implement operations only after their server-side authorization checks, then run web validation and `npm test --prefix backend`. The declaration helps reviewers understand the intended scope; it does not itself enforce access. See the [full module conventions](apps/web/src/domains/_template/README.md) and [end-to-end extension guide](docs/guides/adding-domains-and-tools.md).
 
 ```text

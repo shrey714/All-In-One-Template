@@ -1,3 +1,6 @@
+import { realpath, stat } from "node:fs/promises"
+import { isAbsolute, relative, resolve, sep } from "node:path"
+
 export function parseFlags(argv, allowed) {
   const flags = {}
   for (let index = 0; index < argv.length; index += 1) {
@@ -80,4 +83,84 @@ export function validateIcon(icon) {
     )
   }
   return icon
+}
+
+export async function validateImageIcon(value, publicRoot) {
+  if (!value || value.length > 2048 || /[\u0000-\u001f\u007f]/.test(value)) {
+    throw new Error(
+      "Image icon source is empty, too long, or contains control characters."
+    )
+  }
+
+  try {
+    const url = new URL(value)
+    if (url.protocol !== "https:" || url.username || url.password) {
+      throw new Error(
+        "Remote image icons must use HTTPS and must not include credentials."
+      )
+    }
+    return url.href
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("Remote image icons")
+    ) {
+      throw error
+    }
+  }
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    throw new Error(
+      "Local image icons must use a root-relative path such as /brand/orbit.svg; remote icons must use HTTPS."
+    )
+  }
+  const rawSegments = value.slice(1).split("/")
+  let segments
+  try {
+    segments = rawSegments.map((segment) => decodeURIComponent(segment))
+  } catch {
+    throw new Error("Local image icon paths must use valid URL encoding.")
+  }
+  if (
+    segments.some(
+      (segment) =>
+        !segment ||
+        segment === "." ||
+        segment === ".." ||
+        /[\\/?#\u0000-\u001f\u007f]/.test(segment)
+    ) ||
+    !/\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(segments.at(-1))
+  ) {
+    throw new Error(
+      "Local image icons must point to an image file (SVG, PNG, JPEG, WebP, AVIF, GIF, or ICO) under apps/web/public."
+    )
+  }
+
+  try {
+    const publicRealPath = await realpath(publicRoot)
+    const imageRealPath = await realpath(resolve(publicRealPath, ...segments))
+    const relativePath = relative(publicRealPath, imageRealPath)
+    if (
+      relativePath === ".." ||
+      relativePath.startsWith(`..${sep}`) ||
+      isAbsolute(relativePath) ||
+      !(await stat(imageRealPath)).isFile()
+    ) {
+      throw new Error(
+        "The local image icon must be a file within apps/web/public."
+      )
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("The local image icon")
+    ) {
+      throw error
+    }
+    throw new Error(
+      `Local image icon not found under apps/web/public: ${value}`
+    )
+  }
+
+  return value
 }
