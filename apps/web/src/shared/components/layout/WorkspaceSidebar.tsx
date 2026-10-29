@@ -222,7 +222,7 @@ export function WorkspaceSidebar({
           id="workspace-sidebar"
           aria-label="Collapsed domain and tool navigation"
           style={{ width }}
-          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden rounded-md border"
+          className="group/sidebar flex shrink-0 flex-col items-center overflow-hidden rounded-md border transition-[width] duration-100 ease-out motion-reduce:transition-none"
         >
           <div className="flex w-full shrink-0 items-center justify-center p-1">
             <Button
@@ -363,7 +363,7 @@ export function WorkspaceSidebar({
         id="workspace-sidebar"
         aria-label="Domain and tool navigation"
         style={{ width }}
-        className="group/sidebar flex shrink-0 flex-col overflow-hidden rounded-md border transition-[width] duration-150"
+        className="group/sidebar flex shrink-0 flex-col overflow-hidden rounded-md border transition-[width] duration-100 ease-out motion-reduce:transition-none"
       >
         <div className="flex w-full shrink-0 items-center justify-end gap-1 px-1 py-1">
           <div
