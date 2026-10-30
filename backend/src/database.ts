@@ -99,6 +99,38 @@ export function openDatabase(path = resolve(dataDirectory, "orbit.sqlite")) {
       ON user_notifications(recipient_user_id, id DESC);
     CREATE INDEX IF NOT EXISTS user_notifications_unread_idx
       ON user_notifications(recipient_user_id, archived_at, read_at);
+    CREATE TABLE IF NOT EXISTS tool_presence (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      client_id TEXT NOT NULL,
+      domain_id TEXT NOT NULL,
+      tool_id TEXT NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, client_id)
+    );
+    CREATE INDEX IF NOT EXISTS tool_presence_tool_idx
+      ON tool_presence(domain_id, tool_id, last_seen_at);
+    CREATE INDEX IF NOT EXISTS tool_presence_expiry_idx
+      ON tool_presence(last_seen_at);
+    CREATE TABLE IF NOT EXISTS webhook_deliveries (
+      id TEXT PRIMARY KEY,
+      endpoint_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      url TEXT NOT NULL,
+      secret_env TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'sending', 'delivered', 'failed')),
+      attempts INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at INTEGER NOT NULL,
+      lease_until INTEGER,
+      last_http_status INTEGER,
+      last_error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      delivered_at INTEGER,
+      UNIQUE (endpoint_id, id)
+    );
+    CREATE INDEX IF NOT EXISTS webhook_deliveries_due_idx
+      ON webhook_deliveries(status, next_attempt_at, lease_until, created_at);
   `)
   seedBuiltInRoles(database)
   if (path !== ":memory:") chmodSync(path, 0o600)

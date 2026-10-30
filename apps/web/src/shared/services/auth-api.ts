@@ -2,11 +2,13 @@ import { branding } from "@/shared/config/orbit-config"
 
 export class ApiError extends Error {
   readonly status: number
+  readonly code?: string
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message)
     this.status = status
     this.name = "ApiError"
+    this.code = code
   }
 }
 
@@ -38,13 +40,18 @@ export async function requestApi<T>(
   if (response.status === 204) return undefined as T
   const payload = (await response.json().catch(() => null)) as {
     error?: unknown
+    code?: unknown
   } | null
   if (!response.ok) {
     const message =
       payload && typeof payload.error === "string"
         ? payload.error
         : "The request could not be completed."
-    throw new ApiError(message, response.status)
+    throw new ApiError(
+      message,
+      response.status,
+      typeof payload?.code === "string" ? payload.code : undefined
+    )
   }
   return payload as T
 }

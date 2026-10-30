@@ -446,6 +446,8 @@ test("disabling auth disables sign-in and administrative endpoints", async () =>
         warningBeforeTimeoutSeconds: 60,
       },
       notifications: { enabled: true },
+      presence: { enabled: true },
+      webhooks: { enabled: false, subscriptions: [] },
     })
   )
   await new Promise<void>((resolve) =>
@@ -688,7 +690,7 @@ test("persistent inbox is authenticated, user-isolated, filterable, and mutable 
   }
 })
 
-test("persistent inbox routes are disabled by the root notifications flag", async () => {
+test("optional API routes follow their root feature flags", async () => {
   const adminLogin = await call("/api/auth/login", {
     method: "POST",
     body: { username: "rootadmin", password: ADMIN_PASSWORD },
@@ -703,6 +705,8 @@ test("persistent inbox routes are disabled by the root notifications flag", asyn
         warningBeforeTimeoutSeconds: 60,
       },
       notifications: { enabled: false },
+      presence: { enabled: false },
+      webhooks: { enabled: false, subscriptions: [] },
     })
   )
   await new Promise<void>((resolve) =>
@@ -715,15 +719,369 @@ test("persistent inbox routes are disabled by the root notifications flag", asyn
     const configResponse = await fetch(`${origin}/api/config`)
     const config = (await configResponse.json()) as {
       notifications: { enabled: boolean }
+      presence: { enabled: boolean }
+      webhooks: { enabled: boolean }
     }
     assert.equal(config.notifications.enabled, false)
+    assert.equal(config.presence.enabled, false)
+    assert.equal(config.webhooks.enabled, false)
     const inbox = await fetch(`${origin}/api/notifications`, {
       headers: { Cookie: adminCookie },
     })
     assert.equal(inbox.status, 404)
+    const presence = await fetch(
+      `${origin}/api/presence/finance/emi-calculator`
+    )
+    assert.equal(presence.status, 404)
   } finally {
     await new Promise<void>((resolve, reject) =>
       disabledServer.close((error) => (error ? reject(error) : resolve()))
     )
+  }
+})
+
+test("tool presence is private to authorized tool users and expires per tab", async () => {
+  const anonymous = await call("/api/presence/finance/emi-calculator")
+  assert.equal(anonymous.status, 401)
+
+  const adminLogin = await call("/api/auth/login", {
+    method: "POST",
+    body: { username: "rootadmin", password: ADMIN_PASSWORD },
+  })
+  assert.equal(adminLogin.status, 200)
+  const adminCookie = sessionCookie(adminLogin)
+  const now = new Date().toISOString()
+  const viewerPassword = "Presence-viewer-Password-8765"
+  const viewerHash = await hashPassword(viewerPassword)
+  const viewer = database
+    .prepare(
+      "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES ('presence.viewer', 'Presence Viewer', ?, 'member', 1, 0, ?, ?)"
+    )
+    .run(viewerHash, now, now)
+  const viewerId = Number(viewer.lastInsertRowid)
+  database
+    .prepare(
+      "INSERT INTO user_roles (user_id, role_id, assigned_at) VALUES (?, 'all-tools-user', ?)"
+    )
+    .run(viewerId, now)
+
+  const restrictedPassword = "Presence-restricted-Password-8765"
+  const restrictedHash = await hashPassword(restrictedPassword)
+  const restricted = database
+    .prepare(
+      "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES ('presence.restricted', 'Restricted Viewer', ?, 'member', 1, 0, ?, ?)"
+    )
+    .run(restrictedHash, now, now)
+  const restrictedId = Number(restricted.lastInsertRowid)
+  database
+    .prepare(
+      "INSERT INTO user_roles (user_id, role_id, assigned_at) VALUES (?, 'dashboard-access', ?)"
+    )
+    .run(restrictedId, now)
+
+  const noDashboardPassword = "Presence-no-dashboard-Password-8765"
+  const noDashboardHash = await hashPassword(noDashboardPassword)
+  const noDashboard = database
+    .prepare(
+      "INSERT INTO users (username, display_name, password_hash, role, is_active, must_change_password, created_at, updated_at) VALUES ('presence.no-dashboard', 'No Dashboard User', ?, 'member', 1, 0, ?, ?)"
+    )
+    .run(noDashboardHash, now, now)
+  const noDashboardId = Number(noDashboard.lastInsertRowid)
+
+  try {
+    const viewerLogin = await call("/api/auth/login", {
+      method: "POST",
+      body: { username: "presence.viewer", password: viewerPassword },
+    })
+    assert.equal(viewerLogin.status, 200)
+    const viewerCookie = sessionCookie(viewerLogin)
+    const restrictedLogin = await call("/api/auth/login", {
+      method: "POST",
+      body: { username: "presence.restricted", password: restrictedPassword },
+    })
+    assert.equal(restrictedLogin.status, 200)
+    const restrictedCookie = sessionCookie(restrictedLogin)
+    const noDashboardLogin = await call("/api/auth/login", {
+      method: "POST",
+      body: {
+        username: "presence.no-dashboard",
+        password: noDashboardPassword,
+      },
+    })
+    assert.equal(noDashboardLogin.status, 200)
+    const noDashboardCookie = sessionCookie(noDashboardLogin)
+
+    const adminTabOne = "11111111-1111-4111-8111-111111111111"
+    const adminTabTwo = "22222222-2222-4222-8222-222222222222"
+    const viewerTab = "33333333-3333-4333-8333-333333333333"
+    for (const clientId of [adminTabOne, adminTabTwo]) {
+      const heartbeat = await call(
+        "/api/presence/finance/emi-calculator/heartbeat",
+        { method: "POST", cookie: adminCookie, body: { clientId } }
+      )
+      assert.equal(heartbeat.status, 200)
+    }
+    const viewerHeartbeat = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      { method: "POST", cookie: viewerCookie, body: { clientId: viewerTab } }
+    )
+    assert.equal(viewerHeartbeat.status, 200)
+    assert.equal(
+      ((await viewerHeartbeat.json()) as { count: number }).count,
+      2,
+      "the heartbeat response includes the current peer snapshot"
+    )
+
+    const invalidClientId = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      { method: "POST", cookie: adminCookie, body: { clientId: "not-a-uuid" } }
+    )
+    assert.equal(invalidClientId.status, 400)
+    const invalidToolId = await call(
+      `/api/presence/finance/${"a".repeat(65)}`,
+      { cookie: adminCookie }
+    )
+    assert.equal(invalidToolId.status, 400)
+
+    for (let index = 1; index <= 17; index += 1) {
+      const clientId = `aaaaaaaa-aaaa-4aaa-8aaa-${index.toString(16).padStart(12, "0")}`
+      const heartbeat = await call(
+        "/api/presence/finance/emi-calculator/heartbeat",
+        { method: "POST", cookie: adminCookie, body: { clientId } }
+      )
+      assert.equal(heartbeat.status, 200)
+    }
+    const competingLeases = await Promise.all(
+      [18, 19].map((index) =>
+        call("/api/presence/finance/emi-calculator/heartbeat", {
+          method: "POST",
+          cookie: adminCookie,
+          body: {
+            clientId: `aaaaaaaa-aaaa-4aaa-8aaa-${index.toString(16).padStart(12, "0")}`,
+          },
+        })
+      )
+    )
+    assert.deepEqual(
+      competingLeases.map((response) => response.status).sort((a, b) => a - b),
+      [200, 429],
+      "concurrent new tabs cannot exceed the account's active lease cap"
+    )
+    const existingLease = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      {
+        method: "POST",
+        cookie: adminCookie,
+        body: { clientId: adminTabOne },
+      }
+    )
+    assert.equal(
+      existingLease.status,
+      200,
+      "an existing tab can refresh at cap"
+    )
+    const excessLease = await call(
+      "/api/presence/productivity/pomodoro-timer/heartbeat",
+      {
+        method: "POST",
+        cookie: adminCookie,
+        body: { clientId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+      }
+    )
+    assert.equal(excessLease.status, 429)
+    assert.equal(
+      ((await excessLease.json()) as { code: string }).code,
+      "PRESENCE_TAB_LIMIT"
+    )
+
+    const visibleToAdmin = await call("/api/presence/finance/emi-calculator", {
+      cookie: adminCookie,
+    })
+    const adminSnapshot = (await visibleToAdmin.json()) as {
+      count: number
+      users: Array<{ displayName: string; isYou: boolean }>
+    }
+    assert.equal(visibleToAdmin.status, 200)
+    assert.equal(adminSnapshot.count, 2)
+    assert.ok(
+      adminSnapshot.users.every(
+        (user) => Object.keys(user).sort().join(",") === "displayName,isYou"
+      ),
+      "peer responses expose only display name and the current-user marker"
+    )
+    assert.ok(adminSnapshot.users.some((user) => user.isYou))
+    assert.ok(
+      adminSnapshot.users.some((user) => user.displayName === "Presence Viewer")
+    )
+
+    const visibleToViewer = await call("/api/presence/finance/emi-calculator", {
+      cookie: viewerCookie,
+    })
+    const viewerSnapshot = (await visibleToViewer.json()) as {
+      count: number
+      users: Array<{ displayName: string }>
+    }
+    assert.equal(visibleToViewer.status, 200)
+    assert.equal(viewerSnapshot.count, 2)
+    assert.ok(
+      viewerSnapshot.users.some((user) => user.displayName === "Orbit Admin")
+    )
+
+    const otherToolHeartbeat = await call(
+      "/api/presence/productivity/pomodoro-timer/heartbeat",
+      {
+        method: "POST",
+        cookie: viewerCookie,
+        body: { clientId: "55555555-5555-4555-8555-555555555555" },
+      }
+    )
+    assert.equal(otherToolHeartbeat.status, 200)
+    assert.equal(
+      ((await otherToolHeartbeat.json()) as { count: number }).count,
+      1,
+      "presence is isolated to the requested tool"
+    )
+    const financeAfterOtherTool = await call(
+      "/api/presence/finance/emi-calculator",
+      { cookie: adminCookie }
+    )
+    assert.equal(
+      ((await financeAfterOtherTool.json()) as { count: number }).count,
+      2
+    )
+
+    database
+      .prepare("DELETE FROM user_roles WHERE user_id = ? AND role_id = ?")
+      .run(viewerId, "all-tools-user")
+    const revokedSnapshot = await call("/api/presence/finance/emi-calculator", {
+      cookie: adminCookie,
+    })
+    assert.equal(
+      ((await revokedSnapshot.json()) as { count: number }).count,
+      1,
+      "a user's active presence disappears as soon as the tool grant is revoked"
+    )
+    const revokedHeartbeat = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      { method: "POST", cookie: viewerCookie, body: { clientId: viewerTab } }
+    )
+    assert.equal(revokedHeartbeat.status, 403)
+    database
+      .prepare(
+        "INSERT INTO user_roles (user_id, role_id, assigned_at) VALUES (?, ?, ?)"
+      )
+      .run(viewerId, "all-tools-user", new Date().toISOString())
+    const restoredHeartbeat = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      { method: "POST", cookie: viewerCookie, body: { clientId: viewerTab } }
+    )
+    assert.equal(restoredHeartbeat.status, 200)
+
+    const otherUserLeave = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      {
+        method: "DELETE",
+        cookie: viewerCookie,
+        body: { clientId: adminTabOne },
+      }
+    )
+    assert.equal(otherUserLeave.status, 204)
+    const stillVisibleAfterOtherUserLeave = await call(
+      "/api/presence/finance/emi-calculator",
+      { cookie: viewerCookie }
+    )
+    assert.equal(
+      ((await stillVisibleAfterOtherUserLeave.json()) as { count: number })
+        .count,
+      2,
+      "one account cannot remove another account's presence lease"
+    )
+
+    database
+      .prepare("UPDATE users SET is_active = 0 WHERE id = ?")
+      .run(viewerId)
+    const deactivatedSnapshot = await call(
+      "/api/presence/finance/emi-calculator",
+      { cookie: adminCookie }
+    )
+    assert.equal(
+      ((await deactivatedSnapshot.json()) as { count: number }).count,
+      1,
+      "deactivated accounts are excluded without waiting for lease expiry"
+    )
+    database
+      .prepare("UPDATE users SET is_active = 1 WHERE id = ?")
+      .run(viewerId)
+
+    const denied = await call("/api/presence/finance/emi-calculator", {
+      cookie: restrictedCookie,
+    })
+    assert.equal(denied.status, 403)
+    const deniedHeartbeat = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      {
+        method: "POST",
+        cookie: restrictedCookie,
+        body: { clientId: "44444444-4444-4444-8444-444444444444" },
+      }
+    )
+    assert.equal(deniedHeartbeat.status, 403)
+    const noDashboardRead = await call("/api/presence/finance/emi-calculator", {
+      cookie: noDashboardCookie,
+    })
+    assert.equal(noDashboardRead.status, 403)
+    const noDashboardHeartbeat = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      {
+        method: "POST",
+        cookie: noDashboardCookie,
+        body: { clientId: "66666666-6666-4666-8666-666666666666" },
+      }
+    )
+    assert.equal(noDashboardHeartbeat.status, 403)
+
+    const leaveOneTab = await call(
+      "/api/presence/finance/emi-calculator/heartbeat",
+      { method: "DELETE", cookie: adminCookie, body: { clientId: adminTabOne } }
+    )
+    assert.equal(leaveOneTab.status, 204)
+    const stillVisible = await call("/api/presence/finance/emi-calculator", {
+      cookie: viewerCookie,
+    })
+    assert.equal(
+      ((await stillVisible.json()) as { count: number }).count,
+      2,
+      "one tab leaving does not hide a user with another active tab"
+    )
+
+    database
+      .prepare(
+        "UPDATE tool_presence SET last_seen_at = ? WHERE user_id = ? AND client_id = ?"
+      )
+      .run(Date.now() - 61_000, viewerId, viewerTab)
+    const afterExpiry = await call("/api/presence/finance/emi-calculator", {
+      cookie: adminCookie,
+    })
+    const remainingUsers = (await afterExpiry.json()) as {
+      users: Array<{ displayName: string }>
+    }
+    assert.equal(afterExpiry.status, 200)
+    assert.deepEqual(
+      remainingUsers.users.map((user) => user.displayName),
+      ["Orbit Admin"]
+    )
+  } finally {
+    database
+      .prepare("DELETE FROM users WHERE id IN (?, ?, ?)")
+      .run(viewerId, restrictedId, noDashboardId)
+    database
+      .prepare("DELETE FROM tool_presence WHERE user_id = ?")
+      .run(
+        (
+          database
+            .prepare("SELECT id FROM users WHERE username = 'rootadmin'")
+            .get() as { id: number }
+        ).id
+      )
   }
 })

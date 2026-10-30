@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import {
+  loadWebhookSubscriptions,
+  type WebhookSubscription,
+} from "./webhooks.js"
 
 export type OrbitRuntimeConfig = {
   auth: {
@@ -9,6 +13,8 @@ export type OrbitRuntimeConfig = {
     warningBeforeTimeoutSeconds: number
   }
   notifications: { enabled: boolean }
+  presence: { enabled: boolean }
+  webhooks: { enabled: boolean; subscriptions: WebhookSubscription[] }
 }
 
 const configPath = process.env.ORBIT_CONFIG_PATH
@@ -22,6 +28,8 @@ const defaults: OrbitRuntimeConfig = {
     warningBeforeTimeoutSeconds: 60,
   },
   notifications: { enabled: true },
+  presence: { enabled: true },
+  webhooks: { enabled: false, subscriptions: [] },
 }
 
 export function loadOrbitConfig(): OrbitRuntimeConfig {
@@ -86,8 +94,43 @@ export function loadOrbitConfig(): OrbitRuntimeConfig {
   if (typeof notificationsEnabled !== "boolean") {
     throw new Error("notifications.enabled must be true or false.")
   }
+  const presenceEnabled = readFeatureFlag(
+    parsed as Record<string, unknown>,
+    "presence",
+    defaults.presence.enabled
+  )
+  const webhooksEnabled = readFeatureFlag(
+    parsed as Record<string, unknown>,
+    "webhooks",
+    defaults.webhooks.enabled
+  )
   return {
     auth: { enabled, inactivityTimeoutMinutes, warningBeforeTimeoutSeconds },
     notifications: { enabled: notificationsEnabled },
+    presence: { enabled: presenceEnabled },
+    webhooks: {
+      enabled: webhooksEnabled,
+      subscriptions: webhooksEnabled ? loadWebhookSubscriptions() : [],
+    },
   }
+}
+
+function readFeatureFlag(
+  config: Record<string, unknown>,
+  feature: "presence" | "webhooks",
+  defaultValue: boolean
+) {
+  const raw = config[feature]
+  if (
+    raw !== undefined &&
+    (typeof raw !== "object" || raw === null || Array.isArray(raw))
+  ) {
+    throw new Error(`${feature} must be an object.`)
+  }
+  const enabled =
+    (raw as Record<string, unknown> | undefined)?.enabled ?? defaultValue
+  if (typeof enabled !== "boolean") {
+    throw new Error(`${feature}.enabled must be true or false.`)
+  }
+  return enabled
 }

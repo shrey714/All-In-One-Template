@@ -14,7 +14,7 @@ function isRecord(value: unknown): value is RecordValue {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-function normalizeNotificationsConfig(value: unknown): RecordValue {
+function normalizeFeaturesConfig(value: unknown): RecordValue {
   if (!isRecord(value)) throw new Error("orbit.config.json must be an object.")
   const rawNotifications = value.notifications
   if (rawNotifications !== undefined && !isRecord(rawNotifications)) {
@@ -28,10 +28,26 @@ function normalizeNotificationsConfig(value: unknown): RecordValue {
       "orbit.config.json notifications.enabled must be true or false."
     )
   }
-  return { ...value, notifications: { enabled } }
+  const readFlag = (key: "presence" | "webhooks", fallback: boolean) => {
+    const raw = value[key]
+    if (raw !== undefined && !isRecord(raw)) {
+      throw new Error(`orbit.config.json ${key} must be an object.`)
+    }
+    const flag = isRecord(raw) ? (raw.enabled ?? fallback) : fallback
+    if (typeof flag !== "boolean") {
+      throw new Error(`orbit.config.json ${key}.enabled must be true or false.`)
+    }
+    return flag
+  }
+  return {
+    ...value,
+    notifications: { enabled },
+    presence: { enabled: readFlag("presence", true) },
+    webhooks: { enabled: readFlag("webhooks", false) },
+  }
 }
 
-const orbitConfig: RecordValue = normalizeNotificationsConfig(parsedOrbitConfig)
+const orbitConfig: RecordValue = normalizeFeaturesConfig(parsedOrbitConfig)
 
 function requiredText(source: RecordValue, key: string, maxLength: number) {
   const value = source[key]

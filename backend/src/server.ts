@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { openDatabase } from "./database.js"
 import { createApp } from "./app.js"
 import { loadOrbitConfig } from "./config.js"
+import { startWebhookWorker } from "./webhooks.js"
 
 export function startServer() {
   const config = loadOrbitConfig()
@@ -12,6 +13,10 @@ export function startServer() {
     console.log("Authentication is disabled by orbit.config.json.")
   }
   const app = createApp(database, config)
+  const stopWebhookWorker =
+    config.webhooks.enabled && config.webhooks.subscriptions.length > 0
+      ? startWebhookWorker(app.locals.orbitWebhooks)
+      : async () => undefined
   const port = Number(process.env.ORBIT_API_PORT ?? 3001)
   const host = process.env.ORBIT_API_HOST ?? "127.0.0.1"
   const server = createServer(app)
@@ -23,10 +28,15 @@ export function startServer() {
     )
     console.log("No public account registration route is enabled.")
   })
+  let stopping = false
   const shutdown = () => {
-    server.close(() => {
-      database.close()
-      process.exit(0)
+    if (stopping) return
+    stopping = true
+    void stopWebhookWorker().finally(() => {
+      server.close(() => {
+        database.close()
+        process.exit(0)
+      })
     })
   }
   process.once("SIGINT", shutdown)

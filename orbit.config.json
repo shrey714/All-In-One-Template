@@ -7,6 +7,12 @@
   "notifications": {
     "enabled": true
   },
+  "presence": {
+    "enabled": true
+  },
+  "webhooks": {
+    "enabled": false
+  },
   "branding": {
     "shortName": "Orbit",
     "productName": "Orbit Workspace",

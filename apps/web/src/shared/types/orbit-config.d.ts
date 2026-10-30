@@ -8,6 +8,8 @@ declare global {
       warningBeforeTimeoutSeconds: number
     }
     notifications: { enabled: boolean }
+    presence: { enabled: boolean }
+    webhooks: { enabled: boolean }
     branding: {
       shortName: string
       productName: string

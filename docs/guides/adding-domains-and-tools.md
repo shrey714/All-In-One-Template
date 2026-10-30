@@ -153,6 +153,28 @@ The helper validates bounded plain text, a same-origin root-relative link, and k
 
 The generated integration test uses Orbit's actual session and grant middleware with an in-memory SQLite database and HTTP requests. Its baseline checks that anonymous requests receive 401, authenticated users without grants receive 403, and authorized requests pass the guard (the unimplemented placeholder then returns 501). Keep generated tests in `backend/src/` with the `.test.ts` suffix; `npm test --prefix backend` compiles and runs `dist/*.test.js`.
 
+### Publish an outbound webhook event
+
+For trusted server-to-server integrations, use `publishWebhookEvent(request, event)` from `backend/src/webhooks.ts` inside a protected backend route. The helper filters configured subscribers by event type and enqueues the bounded JSON payload in the signed, retryable outbox; it does not create a browser-facing publishing API. Derive event data from the authorized server operation and include only the minimum useful fields. If the tool's state change is in Orbit's SQLite database, enqueue within the same `database.transaction` so the nested outbox savepoint commits or rolls back with the business change. For external side effects, enqueue after confirmed success and make the operation idempotent.
+
+```ts
+import { publishWebhookEvent } from "../../../webhooks.js"
+
+publishWebhookEvent(request, {
+  type: "finance.report.ready",
+  idempotencyKey: `report:${report.id}:ready:v1`,
+  domainId: "finance",
+  toolId: "report-center",
+  data: { reportId: report.id, rowCount: report.rowCount },
+})
+```
+
+Outbound delivery is disabled by default. Enable `webhooks.enabled` and configure `ORBIT_WEBHOOK_SUBSCRIPTIONS` plus referenced `ORBIT_WEBHOOK_SECRET_*` environment variables on the backend only; never put endpoint secrets in the frontend, root config, source code, or payload. Orbit generates an event ID unless a stable `idempotencyKey` is provided; the same key is deduplicated for each endpoint. Consumers must verify the raw-body HMAC, enforce a timestamp window, and deduplicate `Idempotency-Key`. Test tool authorization separately from webhook delivery; backend tests use a fake transport and never call external endpoints. See [webhooks and tool presence](../architecture/webhooks-and-tool-presence.md) for setup, signature format, retries, URL restrictions, delivery limits, and the presence privacy contract.
+
+### Live users in the current tool
+
+The workbench toolbar displays active teammates for authenticated users on registered tool routes when `presence.enabled` is true (default). No per-tool frontend hook or publisher code is needed. The backend binds each heartbeat to the current session and browser tab, expires abandoned tabs, and applies current dashboard/tool grants to both writes and reads. If adding presence-related UI, keep it display-only: presence is not an authorization signal and must never grant access to data or actions. The complete API, lease lifecycle, and two-account test steps are in [the presence architecture guide](../architecture/webhooks-and-tool-presence.md#live-tool-presence).
+
 Do not place an API key or other secret in frontend code, the security manifest, a URL, local storage, or `info.html`. Use server environment variables or a secret manager for credentials, and restrict external network access to the minimum required destinations.
 
 ## 6. Register and validate

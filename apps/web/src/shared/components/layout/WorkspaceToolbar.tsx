@@ -24,6 +24,9 @@ import { CustomizeLayoutMenu } from "@/shared/components/layout/CustomizeLayoutM
 import { CommandSearchContent } from "@/shared/components/dialogs/CommandSearchContent"
 import { AccountMenu } from "@/shared/components/layout/AccountMenu"
 import { branding } from "@/shared/config/orbit-config"
+import { orbitConfig } from "@/shared/config/orbit-config"
+import { useAuth } from "@/app/providers/AuthProvider"
+import { ToolPresenceIndicator } from "@/shared/components/layout/ToolPresenceIndicator"
 
 type Props = {
   floatingPanel: "search" | "layout" | null
@@ -94,6 +97,7 @@ export function WorkspaceToolbar({
   const location = useLocation()
   const navigate = useNavigate()
   const navigationType = useNavigationType()
+  const { user, authEnabled } = useAuth()
   const route = `${location.pathname}${location.search}${location.hash}`
   const [history, setHistory] = useState(() => ({
     entries: [{ key: location.key, route }],
@@ -208,6 +212,15 @@ export function WorkspaceToolbar({
           </PopoverAnchor>
           <div className="justify-self-end">
             <div className="flex items-center">
+              {tool && user && authEnabled && orbitConfig.presence.enabled ? (
+                <ToolPresenceIndicator
+                  key={`${user.id}:${domain?.id ?? ""}/${tool.id}`}
+                  enabled
+                  userId={user.id}
+                  domainId={domain?.id ?? ""}
+                  toolId={tool.id}
+                />
+              ) : null}
               <Button
                 variant="ghost"
                 size="icon-sm"

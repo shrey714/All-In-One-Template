@@ -25,6 +25,8 @@ import {
 } from "./password.js"
 import { createRolesRouter } from "./roles-router.js"
 import { createNotificationsRouter } from "./notifications-router.js"
+import { createPresenceRouter } from "./presence-router.js"
+import { createWebhookOutbox } from "./webhooks.js"
 import {
   clearSessionCookie,
   createRequireAuth,
@@ -123,6 +125,11 @@ export function createApp(
   config: OrbitRuntimeConfig = loadOrbitConfig()
 ) {
   const app = express()
+  app.locals.orbitWebhooks = createWebhookOutbox(
+    database,
+    config.webhooks.enabled,
+    config.webhooks.subscriptions
+  )
   const isProduction = process.env.NODE_ENV === "production"
   const requireAuth = createRequireAuth(
     database,
@@ -164,6 +171,8 @@ export function createApp(
         warningBeforeTimeoutSeconds: config.auth.warningBeforeTimeoutSeconds,
       },
       notifications: { enabled: config.notifications.enabled },
+      presence: { enabled: config.presence.enabled && config.auth.enabled },
+      webhooks: { enabled: config.webhooks.enabled },
     })
   })
   const requireAuthEnabled: RequestHandler = (_request, response, next) => {
@@ -186,6 +195,17 @@ export function createApp(
   app.use(
     "/api/notifications",
     createNotificationsRouter(database, config.auth.inactivityTimeoutMinutes)
+  )
+  app.use("/api/presence", (_request, response, next) => {
+    if (!config.presence.enabled || !config.auth.enabled) {
+      sendError(response, 404, "Tool presence is disabled.")
+      return
+    }
+    next()
+  })
+  app.use(
+    "/api/presence",
+    createPresenceRouter(database, config.auth.inactivityTimeoutMinutes)
   )
   app.use("/api/admin", requireAuth, (request, response, next) => {
     if (requirePermission(request, response, "dashboard:access")) next()
