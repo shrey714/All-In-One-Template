@@ -1,5 +1,10 @@
 import { UsersRound } from "lucide-react"
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+} from "@workspace/ui/components/avatar"
 import { Button } from "@workspace/ui/components/button"
 import {
   Popover,
@@ -60,30 +65,37 @@ export function ToolPresenceIndicator({
             aria-hidden="true"
           />
           {previewUsers.length > 0 ? (
-            <span className="inline-flex items-center pl-2" aria-hidden="true">
+            <AvatarGroup className="pl-2" aria-hidden="true">
               {previewUsers.map((user, index) => (
                 <Avatar
                   key={`${user.displayName}-${index}`}
                   size="sm"
-                  className="relative -ml-2 ring-2 ring-background first:ml-0"
+                  className={`group/active-user transition-[z-index] hover:z-50 ${avatarStack(index)}`}
                 >
                   <AvatarFallback
-                    className={
-                      user.isYou
-                        ? "bg-primary/10 text-[9px] font-semibold text-primary"
-                        : "bg-emerald-500/10 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300"
-                    }
+                    className={`text-[9px] font-semibold ${avatarTone(user)}`}
                   >
                     {initials(user.displayName)}
                   </AvatarFallback>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 w-max -translate-x-1/2 rounded-md border bg-popover px-2.5 py-1.5 text-left text-popover-foreground opacity-0 shadow-md transition-opacity duration-100 group-hover/active-user:opacity-100"
+                  >
+                    <span className="block text-xs font-medium">
+                      {user.displayName}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                      {user.isYou ? "You · active now" : "Active in this tool"}
+                    </span>
+                  </span>
                 </Avatar>
               ))}
               {remainingCount > 0 ? (
-                <span className="relative z-10 -ml-2 flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-medium text-muted-foreground">
+                <AvatarGroupCount className="relative z-40 text-[9px] font-semibold">
                   +{remainingCount}
-                </span>
+                </AvatarGroupCount>
               ) : null}
-            </span>
+            </AvatarGroup>
           ) : (
             <span className="flex items-center gap-1 text-[11px]">
               <UsersRound className="size-3.5" aria-hidden="true" />
@@ -117,7 +129,9 @@ export function ToolPresenceIndicator({
                 className="flex items-center gap-2.5 rounded-sm px-2 py-2"
               >
                 <Avatar size="sm">
-                  <AvatarFallback className="bg-emerald-500/10 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                  <AvatarFallback
+                    className={`text-[10px] font-medium ${avatarTone(user)}`}
+                  >
                     {initials(user.displayName)}
                   </AvatarFallback>
                 </Avatar>
@@ -150,4 +164,24 @@ function initials(name: string) {
       ? `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`
       : (parts[0]?.slice(0, 2) ?? "?")
   return value.toLocaleUpperCase()
+}
+
+function avatarTone(user: { displayName: string; isYou: boolean }) {
+  if (user.isYou) return "bg-primary text-primary-foreground"
+  const palette = [
+    "bg-blue-700 text-white",
+    "bg-violet-700 text-white",
+    "bg-emerald-700 text-white",
+    "bg-rose-700 text-white",
+    "bg-amber-800 text-white",
+  ]
+  let hash = 0
+  for (const character of user.displayName) {
+    hash = (hash * 31 + character.codePointAt(0)!) | 0
+  }
+  return palette[Math.abs(hash) % palette.length]!
+}
+
+function avatarStack(index: number) {
+  return index === 0 ? "z-30" : index === 1 ? "z-20" : "z-10"
 }
