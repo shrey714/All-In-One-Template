@@ -8,83 +8,91 @@ export function DashboardLoadingSkeleton() {
       role="status"
       aria-label="Loading dashboard overview"
       aria-busy="true"
-      className="space-y-8"
+      className="mx-auto w-full max-w-[1440px] space-y-7 pb-6"
     >
       <span className="sr-only">Loading dashboard overview…</span>
-      <div aria-hidden="true" className="space-y-3">
-        <Skeleton className="h-3 w-36" />
-        <Skeleton className="h-8 w-72 max-w-full" />
+      <header
+        aria-hidden="true"
+        className="space-y-2 border-b border-border/70 pb-4"
+      >
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-8 w-52 max-w-full" />
         <Skeleton className="h-4 w-[min(34rem,90%)]" />
-        <Skeleton className="h-4 w-[min(27rem,75%)]" />
-      </div>
+      </header>
 
-      <div aria-hidden="true" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-3 rounded-xl border bg-card px-4 py-4"
-          >
-            <Skeleton className="size-9 shrink-0 rounded-lg" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-5 w-10" />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <section aria-hidden="true" className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-2.5 w-20" />
+      <section
+        aria-hidden="true"
+        className="overflow-hidden rounded-2xl border border-border/80 bg-card/45 shadow-sm"
+      >
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border/70 px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="size-8 rounded-lg" />
             <Skeleton className="h-5 w-32" />
           </div>
-          <Skeleton className="h-5 w-16 rounded-md" />
+          <Skeleton className="h-3 w-12" />
         </div>
-        <div className="flex items-center gap-3 rounded-xl border border-dashed bg-muted/20 px-4 py-4">
-          <Skeleton className="size-10 shrink-0 rounded-lg" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-44 max-w-full" />
-            <Skeleton className="h-3 w-[min(30rem,90%)]" />
-          </div>
-        </div>
-      </section>
-
-      <section aria-hidden="true" className="space-y-3">
-        <div className="space-y-2">
-          <Skeleton className="h-2.5 w-16" />
-          <Skeleton className="h-6 w-44" />
-        </div>
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-4 gap-x-1 gap-y-2 px-2 py-3 sm:grid-cols-5 sm:gap-x-2 sm:px-3 sm:py-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
           {Array.from({ length: 5 }, (_, index) => (
-            <div
-              key={index}
-              className="overflow-hidden rounded-xl border bg-card"
-            >
-              <div className="flex items-center gap-3 border-b px-4 py-4">
-                <Skeleton className="size-9 shrink-0 rounded-lg" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-4 w-32 max-w-full" />
-                  <Skeleton className="h-3 w-48 max-w-full" />
-                </div>
-                <Skeleton className="h-6 w-14 shrink-0 rounded-md" />
-              </div>
-              <div className="divide-y divide-border/70">
-                {Array.from({ length: index % 2 === 0 ? 2 : 3 }, (_, row) => (
-                  <div key={row} className="flex items-center gap-3 px-4 py-3">
-                    <Skeleton className="size-8 shrink-0 rounded-lg" />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Skeleton className="h-3.5 w-36 max-w-full" />
-                      <Skeleton className="h-3 w-52 max-w-full" />
-                    </div>
-                    <Skeleton className="size-4 shrink-0 rounded-full" />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ApplicationTileSkeleton key={index} index={index} />
           ))}
         </div>
       </section>
+
+      <section aria-hidden="true" className="space-y-3">
+        <div className="flex min-h-12 items-center justify-between gap-3">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+          <Skeleton className="h-3 w-12" />
+        </div>
+
+        <div className="flex gap-1.5 overflow-hidden py-1">
+          {[10, 20, 16, 24, 14].map((width, index) => (
+            <Skeleton
+              key={index}
+              className="h-7 shrink-0 rounded-lg"
+              style={{ width: `${width * 4}px` }}
+            />
+          ))}
+        </div>
+
+        <div className="space-y-5 pt-1">
+          {Array.from({ length: 4 }, (_, domainIndex) => (
+            <section key={domainIndex} className="space-y-1.5">
+              <div className="flex min-h-9 items-center gap-2 border-b border-border/60 pb-1.5">
+                <Skeleton className="size-7 shrink-0 rounded-lg" />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <Skeleton className="h-3.5 w-28 max-w-full" />
+                  <Skeleton className="h-2.5 w-40 max-w-full" />
+                </div>
+                <Skeleton className="h-3 w-10 shrink-0" />
+              </div>
+              <div className="grid grid-cols-4 gap-x-1 gap-y-2 sm:grid-cols-5 sm:gap-x-2 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
+                {Array.from(
+                  { length: domainIndex % 2 === 0 ? 6 : 5 },
+                  (_, index) => (
+                    <ApplicationTileSkeleton key={index} index={index} />
+                  )
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ApplicationTileSkeleton({ index }: { index: number }) {
+  const labelWidths = ["w-14", "w-16", "w-12", "w-20", "w-14", "w-16"]
+
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-2 px-1 py-1">
+      <Skeleton className="size-16 rounded-[18px] sm:size-[72px] sm:rounded-[20px]" />
+      <Skeleton
+        className={`h-3 max-w-full ${labelWidths[index % labelWidths.length]}`}
+      />
     </div>
   )
 }

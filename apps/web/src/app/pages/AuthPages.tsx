@@ -16,8 +16,10 @@ import {
   Circle,
   Eye,
   EyeOff,
-  KeyRound,
+  Fingerprint,
   Layers3,
+  LockKeyhole,
+  Sparkles,
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react"
@@ -30,72 +32,119 @@ import { domains } from "@/shared/config/registry"
 
 function WorkspaceOverview() {
   return (
-    <div className="max-w-xl">
-      <p className="text-[11px] font-semibold tracking-[.18em] text-primary uppercase">
+    <div className="relative max-w-xl">
+      <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
+        <Sparkles className="size-3.5" aria-hidden="true" />
         {branding.signIn.eyebrow}
-      </p>
-      <h1 className="mt-4 max-w-lg text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+      </div>
+      <h1 className="mt-6 max-w-xl text-4xl leading-[1.04] font-semibold tracking-[-.045em] sm:text-5xl xl:text-[3.5rem]">
         {branding.signIn.headline}
       </h1>
-      <p className="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
+      <p className="mt-5 max-w-lg text-sm leading-6 text-muted-foreground sm:text-[15px]">
         {branding.signIn.description}
       </p>
-      <div className="mt-7 flex flex-wrap gap-2" aria-label="Workspace domains">
-        {domains.map((domain) => (
-          <span
-            key={domain.id}
-            className="rounded-md border bg-card px-2.5 py-1.5 text-xs text-muted-foreground"
+      <div className="relative mt-8 overflow-hidden rounded-2xl border border-border/80 bg-card/70 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:p-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border)_36%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_36%,transparent)_1px,transparent_1px)] [mask-image:linear-gradient(to_right,black,transparent_88%)] bg-[size:28px_28px] opacity-40"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 -right-16 size-64 rounded-full border border-primary/15"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-10 -right-6 size-44 rounded-full border border-primary/20"
+        />
+        <div className="relative">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-medium tracking-[.16em] text-muted-foreground uppercase">
+                Workspace map
+              </p>
+              <p className="mt-1 text-lg font-semibold tracking-tight">
+                One system. Many workflows.
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-lg shadow-primary/10">
+              <Layers3 className="size-5" aria-hidden="true" />
+            </div>
+          </div>
+          <div
+            className="mt-5 flex flex-wrap gap-2"
+            aria-label="Workspace domains"
           >
-            {domain.name}
-          </span>
-        ))}
+            {domains.map((domain, index) => (
+              <span
+                key={domain.id}
+                className="inline-flex items-center gap-2 rounded-lg border bg-background/85 px-3 py-2 text-xs font-medium shadow-sm"
+              >
+                <span
+                  className={`size-1.5 rounded-full ${domainDot(index)}`}
+                  aria-hidden="true"
+                />
+                {domain.name}
+              </span>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center gap-2 border-t border-border/70 pt-4 text-[11px] text-muted-foreground">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/50 motion-reduce:animate-none" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+            </span>
+            Access, preferences, and tools in one place
+          </div>
+        </div>
       </div>
-      <div className="mt-9 divide-y border-y">
+      <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
         <OverviewRow
-          number="01"
           icon={Layers3}
           title="Organized by domain"
-          detail="Keep related tools easy to find."
+          detail="Every tool, in context."
         />
         <OverviewRow
-          number="02"
           icon={ShieldCheck}
           title="Managed access"
-          detail="Accounts and roles are provisioned by an admin."
+          detail="Roles set by your admin."
         />
         <OverviewRow
-          number="03"
           icon={SlidersHorizontal}
           title="A workspace that fits"
-          detail="Keep your layout and display preferences."
+          detail="Your layout, your flow."
         />
       </div>
     </div>
   )
 }
 
+function domainDot(index: number) {
+  const colors = [
+    "bg-violet-500",
+    "bg-cyan-500",
+    "bg-emerald-500",
+    "bg-amber-500",
+    "bg-rose-500",
+  ]
+  return colors[index % colors.length]
+}
+
 function OverviewRow({
-  number,
   icon: Icon,
   title,
   detail,
 }: {
-  number: string
   icon: typeof Layers3
   title: string
   detail: string
 }) {
   return (
-    <div className="flex items-start gap-3 py-4">
-      <span className="w-6 pt-0.5 font-mono text-[10px] text-muted-foreground">
-        {number}
-      </span>
-      <span className="grid size-8 shrink-0 place-items-center rounded-md border bg-card text-muted-foreground">
+    <div className="flex min-w-0 items-start gap-2.5 rounded-xl border border-border/60 bg-card/45 p-3">
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/5 text-primary">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+        <p className="text-xs font-semibold">{title}</p>
+        <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
           {detail}
         </p>
       </div>
@@ -106,15 +155,18 @@ function OverviewRow({
 function AuthFrame({
   children,
   headerLabel,
+  landing = false,
 }: {
   children: ReactNode
   headerLabel: string
+  landing?: boolean
 }) {
   return (
     <SystemPageFrame
       headerLabel={headerLabel}
       aside={<WorkspaceOverview />}
       footerNote={branding.signIn.footerNote}
+      variant={landing ? "landing" : "default"}
     >
       {children}
     </SystemPageFrame>
@@ -160,16 +212,29 @@ export function LoginPage() {
   }
 
   return (
-    <AuthFrame headerLabel="ACCOUNT ACCESS">
-      <Card className="border-border/80 shadow-sm">
-        <CardHeader>
-          <p className="text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
-            Member sign-in
-          </p>
-          <CardTitle className="text-xl">{branding.signIn.formTitle}</CardTitle>
-          <CardDescription>{branding.signIn.formDescription}</CardDescription>
+    <AuthFrame headerLabel="ACCOUNT ACCESS" landing>
+      <Card className="relative overflow-hidden rounded-2xl border-border/80 bg-card/90 shadow-2xl shadow-primary/10 backdrop-blur-xl">
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30"
+        />
+        <CardHeader className="px-6 pt-7 sm:px-7">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+              <LockKeyhole className="size-4" aria-hidden="true" />
+            </span>
+            <p className="text-[10px] font-semibold tracking-[.16em] text-primary uppercase">
+              Secure sign-in
+            </p>
+          </div>
+          <CardTitle className="text-2xl tracking-tight">
+            {branding.signIn.formTitle}
+          </CardTitle>
+          <CardDescription className="leading-5">
+            {branding.signIn.formDescription}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-7 sm:px-7">
           <form className="space-y-4" onSubmit={submit}>
             {error && (
               <Alert variant="destructive">
@@ -177,7 +242,9 @@ export function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="orbit-username">Username</Label>
+              <Label htmlFor="orbit-username" className="text-xs">
+                Username
+              </Label>
               <Input
                 id="orbit-username"
                 name="username"
@@ -193,7 +260,9 @@ export function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="orbit-password">Password</Label>
+              <Label htmlFor="orbit-password" className="text-xs">
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="orbit-password"
@@ -219,7 +288,7 @@ export function LoginPage() {
               </div>
             </div>
             <Button
-              className="w-full"
+              className="mt-1 h-11 w-full rounded-lg text-sm font-semibold shadow-md shadow-primary/15"
               type="submit"
               disabled={busy || !username || !password}
             >
@@ -230,7 +299,7 @@ export function LoginPage() {
                 </>
               ) : (
                 <>
-                  <KeyRound className="size-4" />
+                  <Fingerprint className="size-4" />
                   {branding.signIn.submitLabel}
                 </>
               )}

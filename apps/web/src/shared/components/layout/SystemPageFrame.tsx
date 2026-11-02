@@ -11,6 +11,7 @@ type SystemPageFrameProps = {
   aside?: ReactNode
   headerLabel: string
   footerNote?: string
+  variant?: "default" | "landing"
 }
 
 export function SystemPageFrame({
@@ -18,13 +19,24 @@ export function SystemPageFrame({
   aside,
   headerLabel,
   footerNote = `${branding.productName} · Managed by your workspace administrator`,
+  variant = "default",
 }: SystemPageFrameProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
 
   return (
-    <main className="flex min-h-svh flex-col bg-background text-foreground">
-      <header className="border-b border-border/70">
+    <main
+      className={`flex min-h-svh flex-col bg-background text-foreground ${variant === "landing" ? "relative isolate overflow-hidden" : ""}`}
+    >
+      {variant === "landing" ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_16%_30%,color-mix(in_oklab,var(--primary)_15%,transparent),transparent_43%),radial-gradient(ellipse_at_88%_78%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_38%)]"
+        />
+      ) : null}
+      <header
+        className={`border-b border-border/70 ${variant === "landing" ? "bg-background/70 backdrop-blur-xl" : ""}`}
+      >
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Link
             to="/"
@@ -66,7 +78,7 @@ export function SystemPageFrame({
       </header>
 
       <div
-        className={`mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-5 py-9 sm:px-8 sm:py-12 ${aside ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] lg:gap-16" : "max-w-2xl justify-items-center"}`}
+        className={`relative mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-5 py-9 sm:px-8 sm:py-12 ${aside ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] lg:gap-16" : "max-w-2xl justify-items-center"}`}
       >
         {aside && (
           <aside
